@@ -1,0 +1,49 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: talent-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yaml
+        group: DEFAULT_GROUP
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: talent-employee
+          uri: lb://talent-employee-service
+          predicates:
+            - Path=/api/employee/**
+        - id: talent-planning
+          uri: lb://talent-planning-service
+          predicates:
+            - Path=/api/planning/**
+        - id: talent-training
+          uri: lb://talent-training-service
+          predicates:
+            - Path=/api/training/**
+        - id: talent-promotion
+          uri: lb://talent-promotion-service
+          predicates:
+            - Path=/api/promotion/**
+        - id: talent-analysis
+          uri: lb://talent-analysis-service
+          predicates:
+            - Path=/api/analysis/**
+
+  config:
+    import:
+      - optional:nacos:${spring.application.name}-${spring.profiles.active:dev}.yaml
+
+logging:
+  level:
+    com.talent: debug
