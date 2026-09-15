@@ -10,3 +10,9 @@ target/
 .DS_Store
 logs/
 *.log
+
+# 前端（talent-web）
+node_modules/
+dist/
+*.local
+.vite/

@@ -1,33 +1,104 @@
 package com.talent.employee.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.talent.common.result.PageResult;
 import com.talent.common.result.Result;
+import com.talent.common.vo.NameValueVO;
+import com.talent.employee.dto.EmployeeQuery;
+import com.talent.employee.dto.EmployeeSaveDTO;
+import com.talent.employee.service.EmployeeService;
+import com.talent.employee.vo.EmployeeDetailVO;
+import com.talent.employee.vo.EmployeeVO;
+import com.talent.employee.vo.PositionOptionVO;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 /**
- * 员工档案 API。示例接口，实际业务请在此模块内扩展。
+ * 模块一：员工档案。数据来自 emp_employee 等表，不再是写死的假数据。
+ *
+ * <p>直连：http://127.0.0.1:8081/api/employee/page?pageNum=1&pageSize=5
+ * <p>网关：http://127.0.0.1:9090/api/employee/page?pageNum=1&pageSize=5
  */
 @RestController
 @RequestMapping("/api/employee")
+@RequiredArgsConstructor
 public class EmployeeController {
 
+    private final EmployeeService employeeService;
+
+    /** 快速联调用：默认返回前 10 条 */
     @GetMapping("/list")
-    public Result<List<EmployeeDTO>> list() {
-        return Result.success(List.of(
-                new EmployeeDTO(1001L, "张三", "研发部", "Java开发", "在职"),
-                new EmployeeDTO(1002L, "李四", "产品部", "产品经理", "在职")
-        ));
+    @SentinelResource(value = "employeeList", blockHandler = "listBlockHandler")
+    public Result<List<EmployeeVO>> list() {
+        return Result.success(employeeService.top(10));
     }
 
+    /**
+     * list 的限流兜底方法。约定：方法名对应 blockHandler，
+     * 参数 = 原方法参数 + 末尾一个 BlockException，返回值类型与原方法一致。
+     */
+    public Result<List<EmployeeVO>> listBlockHandler(BlockException ex) {
+        return Result.fail(429, "员工列表访问过于频繁，请稍后再试");
+    }
+
+    /** 分页 + 条件查询（关键字、部门、岗位、人才标签、风险等级、在职状态） */
+    @GetMapping("/page")
+    public Result<PageResult<EmployeeVO>> page(EmployeeQuery query) {
+        return Result.success(employeeService.pageQuery(query));
+    }
+
+    /** 员工详情：基本信息 + 薪酬 + 技能 + 已完成培训 */
     @GetMapping("/{id}")
-    public Result<EmployeeDTO> getById(@PathVariable Long id) {
-        return Result.success(new EmployeeDTO(id, "示例员工", "研发部", "后端开发", "在职"));
+    public Result<EmployeeDetailVO> detail(@PathVariable("id") Long id) {
+        return Result.success(employeeService.detail(id));
     }
 
-    public record EmployeeDTO(Long id, String name, String department, String position, String status) {
+    /** 新增员工 */
+    @PostMapping
+    public Result<Long> create(@Valid @RequestBody EmployeeSaveDTO dto) {
+        return Result.success("新增成功", employeeService.create(dto));
+    }
+
+    /** 修改员工 */
+    @PutMapping("/{id}")
+    public Result<Void> update(@PathVariable("id") Long id, @Valid @RequestBody EmployeeSaveDTO dto) {
+        employeeService.update(id, dto);
+        return Result.success("修改成功", null);
+    }
+
+    /** 删除员工（关联的薪酬/绩效/技能/培训记录会一起删掉） */
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable("id") Long id) {
+        employeeService.delete(id);
+        return Result.success("删除成功", null);
+    }
+
+    /** 岗位下拉选项，新增员工时选岗位用 */
+    @GetMapping("/options/positions")
+    public Result<List<PositionOptionVO>> positionOptions() {
+        return Result.success(employeeService.positionOptions());
+    }
+
+    /** 部门下拉选项 */
+    @GetMapping("/options/departments")
+    public Result<List<String>> departments() {
+        return Result.success(employeeService.departments());
+    }
+
+    /** 按部门统计人数 */
+    @GetMapping("/stats/department")
+    public Result<List<NameValueVO>> departmentStats() {
+        return Result.success(employeeService.departmentStats());
     }
 }

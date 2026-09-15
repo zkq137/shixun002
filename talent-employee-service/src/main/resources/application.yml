@@ -14,6 +14,18 @@ spring:
         namespace: ${NACOS_NAMESPACE:}
         file-extension: yaml
         group: DEFAULT_GROUP
+    sentinel:
+      transport:
+        # Sentinel 控制台地址（默认本机 8858，启动方式见 README 第八节）
+        dashboard: ${SENTINEL_DASHBOARD:127.0.0.1:8858}
+        # 本服务与控制台通信的端口，同机多服务必须互不相同
+        # 注意：Sentinel 控制台自己会占用默认的 8719，所以从 8720 开始编号
+        port: 8720
+        # 本机装了 VMware / Radmin VPN 等多张虚拟网卡时，Sentinel 自动探测的 IP 可能是 26.x 之类，
+        # 控制台就连不上、看不到实时监控。本机开发统一注册成 127.0.0.1。
+        client-ip: ${SENTINEL_CLIENT_IP:127.0.0.1}
+      # 启动即注册到控制台，不用等第一次访问
+      eager: true
   config:
     import:
       - optional:nacos:${spring.application.name}-${spring.profiles.active:dev}.yaml
@@ -38,3 +50,8 @@ mybatis-plus:
 logging:
   level:
     com.talent: debug
+
+# 让 Feign 调用也走 Sentinel（熔断降级），配合 @FeignClient(fallbackFactory = ...)
+feign:
+  sentinel:
+    enabled: true
