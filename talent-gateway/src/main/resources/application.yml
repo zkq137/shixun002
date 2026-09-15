@@ -39,6 +39,25 @@ spring:
           uri: lb://talent-analysis-service
           predicates:
             - Path=/api/analysis/**
+    sentinel:
+      transport:
+        # Sentinel 控制台地址（默认本机 8858，启动方式见 README 第八节）
+        dashboard: ${SENTINEL_DASHBOARD:127.0.0.1:8858}
+        # 本服务与控制台通信的端口，同机多服务必须互不相同
+        port: 8724
+        # 本机装了 VMware / Radmin VPN 等多张虚拟网卡时，Sentinel 自动探测的 IP 可能是 26.x 之类，
+        # 控制台就连不上、看不到实时监控。本机开发统一注册成 127.0.0.1。
+        client-ip: ${SENTINEL_CLIENT_IP:127.0.0.1}
+      # 启动即注册到控制台，不用等第一次访问
+      eager: true
+      # 被限流时返回的响应。模式 response = 直接返回下面的内容和状态码
+      # 注意：网关的 SentinelWebFluxFilter 由 SCG 适配器默认关闭，不要手动打开，否则会重复统计
+      scg:
+        fallback:
+          mode: response
+          response-status: 429
+          content-type: 'application/json;charset=UTF-8'
+          response-body: '{"code":429,"message":"请求过于频繁，请稍后再试","data":null}'
 
   config:
     import:
