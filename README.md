@@ -215,6 +215,20 @@ cmd /c "D:\Develop\MySQL80\bin\mysql.exe -uroot -p20050312 --default-character-s
 > 脚本会 DROP 再重建这些表，`talent_db.sql` 里那 3 条示例数据（E001/E002/E003 和 3 个示例岗位）
 > 会被数据集取代。如果这些表里已经录过手工数据，先备份再执行。
 
+### 2.1 技能树（分类 + 子技能）
+
+上面那份数据集里 `skill` 表是平的（172 个技能混在一起）。再执行一次
+`sql/talent_skill_tree.sql`，会给它补上 `parent_id` 等字段，并建成
+**9 个分类 + 172 个技能** 的两层技能树：
+
+```bat
+cmd /c "D:\Develop\MySQL80\bin\mysql.exe -uroot -p20050312 --default-character-set=utf8mb4 < sql\talent_skill_tree.sql"
+```
+
+分类是：研发技术(23)、数据与算法(21)、产品与设计(17)、运营与营销(20)、销售与客户(14)、
+财务与风控(16)、人力与组织(18)、行政与流程(12)、通用职业能力(31)。
+脚本可以重复执行，自己新建的技能不会被它改动。
+
 ### 3. 几个字段的说明
 
 - 数据集只给了「绩效评分」一个分数，没有年份，统一记为 **2026 年度**（`emp_performance.perf_year`）。

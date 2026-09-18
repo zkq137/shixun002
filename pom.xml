@@ -73,6 +73,16 @@
                 <artifactId>mysql-connector-j</artifactId>
                 <version>${mysql.version}</version>
             </dependency>
+            <!--
+              EasyExcel 用的 POI 需要 commons-io 2.12 以上（UnsynchronizedByteArrayOutputStream.builder），
+              而 spring-cloud-starter-openfeign 会带进来 2.11.0，不锁定版本的话导出 Excel 会报
+              NoSuchMethodError。这里统一压到 2.16.1。
+            -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.16.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
