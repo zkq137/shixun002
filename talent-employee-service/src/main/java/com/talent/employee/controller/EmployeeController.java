@@ -5,12 +5,20 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.talent.common.result.PageResult;
 import com.talent.common.result.Result;
 import com.talent.common.vo.NameValueVO;
+import com.talent.employee.dto.BatchIdsDTO;
+import com.talent.employee.dto.EmployeeBatchUpdateDTO;
 import com.talent.employee.dto.EmployeeQuery;
 import com.talent.employee.dto.EmployeeSaveDTO;
+import com.talent.employee.dto.EmployeeSkillDTO;
+import com.talent.employee.service.EmployeeExcelService;
 import com.talent.employee.service.EmployeeService;
+import com.talent.employee.vo.BatchResultVO;
 import com.talent.employee.vo.EmployeeDetailVO;
+import com.talent.employee.vo.EmployeeImportResultVO;
 import com.talent.employee.vo.EmployeeVO;
 import com.talent.employee.vo.PositionOptionVO;
+import com.talent.employee.vo.SkillVO;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,8 +28,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -36,6 +47,7 @@ import java.util.List;
 public class EmployeeController {
 
     private final EmployeeService employeeService;
+    private final EmployeeExcelService employeeExcelService;
 
     /** 快速联调用：默认返回前 10 条 */
     @GetMapping("/list")
@@ -100,5 +112,48 @@ public class EmployeeController {
     @GetMapping("/stats/department")
     public Result<List<NameValueVO>> departmentStats() {
         return Result.success(employeeService.departmentStats());
+    }
+
+    /** 批量删除 */
+    @PostMapping("/batch/delete")
+    public Result<BatchResultVO> batchDelete(@Valid @RequestBody BatchIdsDTO dto) {
+        return Result.success("删除完成", employeeService.batchDelete(dto.getIds()));
+    }
+
+    /** 批量修改部门 / 状态 / 办公方式 / 职级 */
+    @PutMapping("/batch/update")
+    public Result<BatchResultVO> batchUpdate(@Valid @RequestBody EmployeeBatchUpdateDTO dto) {
+        return Result.success("修改完成", employeeService.batchUpdate(dto));
+    }
+
+    /** 导出 Excel：导出的是当前筛选条件下的全部数据，不只是当前页 */
+    @GetMapping("/export")
+    public void export(EmployeeQuery query, HttpServletResponse response) throws IOException {
+        employeeExcelService.export(query, response);
+    }
+
+    /** 下载导入模板 */
+    @GetMapping("/import-template")
+    public void importTemplate(HttpServletResponse response) throws IOException {
+        employeeExcelService.template(response);
+    }
+
+    /** 导入 Excel */
+    @PostMapping("/import")
+    public Result<EmployeeImportResultVO> importExcel(@RequestParam("file") MultipartFile file) throws IOException {
+        return Result.success("导入完成", employeeExcelService.importExcel(file));
+    }
+
+    /** 某员工会的技能 */
+    @GetMapping("/{id}/skills")
+    public Result<List<SkillVO>> skills(@PathVariable("id") Long id) {
+        return Result.success(employeeService.employeeSkills(id));
+    }
+
+    /** 给员工配技能（整体覆盖） */
+    @PutMapping("/{id}/skills")
+    public Result<Void> updateSkills(@PathVariable("id") Long id, @RequestBody EmployeeSkillDTO dto) {
+        employeeService.replaceSkills(id, dto.getSkillIds());
+        return Result.success("技能已更新", null);
     }
 }

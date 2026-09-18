@@ -23,6 +23,11 @@ spring:
           uri: lb://talent-employee-service
           predicates:
             - Path=/api/employee/**
+        # 技能树也归员工模块管
+        - id: talent-skill
+          uri: lb://talent-employee-service
+          predicates:
+            - Path=/api/skill/**
         - id: talent-planning
           uri: lb://talent-planning-service
           predicates:
