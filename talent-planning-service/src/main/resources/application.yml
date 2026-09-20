@@ -34,7 +34,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/talent_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 20050312
+    password: ${SPRING_DATASOURCE_PASSWORD:0721}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
