@@ -1,5 +1,5 @@
 import { get } from './request'
-import type { NameValue, RiskEmployee, SuccessionCandidate } from './types'
+import type { PageResult, PlanningDashboard, RiskEmployee, SkillCoverage, SuccessionCandidate } from './types'
 
 /** 关键岗位的继任候选人，按技能匹配度排序 */
 export function fetchSuccession(positionId: number, limit = 10) {
@@ -8,12 +8,16 @@ export function fetchSuccession(positionId: number, limit = 10) {
 
 /** 流失风险名单 */
 export function fetchRiskEmployees(limit = 10) {
-  return get<RiskEmployee[]>('/planning/risk', { limit })
+  return get<PageResult<RiskEmployee>>('/planning/risks/employees', { pageNum: 1, pageSize: limit })
 }
 
 /** 岗位核心技能的全公司覆盖人数 */
 export function fetchSkillCoverage(positionId: number) {
-  return get<NameValue[]>('/planning/skill-coverage', { positionId })
+  return get<SkillCoverage[]>('/planning/skill-coverage', { positionId })
+}
+
+export function fetchPlanningDashboard() {
+  return get<PlanningDashboard>('/planning/dashboard')
 }
 
 /** 跨服务调用示例：从员工服务取档案 */

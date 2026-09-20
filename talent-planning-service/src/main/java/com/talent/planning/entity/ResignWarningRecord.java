@@ -1,18 +1,19 @@
-package com.talent.planning.vo;
+package com.talent.planning.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
-public class RiskEmployeeVO {
+@TableName("resign_warning_record")
+public class ResignWarningRecord {
+    @TableId(type = IdType.AUTO)
     private Long id;
     private Long employeeId;
-    private String empNo;
-    private String employeeName;
-    private String department;
-    private String currentPosition;
     private BigDecimal riskScore;
     private String warningLevel;
     private LocalDateTime warningTime;

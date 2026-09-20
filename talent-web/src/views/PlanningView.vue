@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { fetchPositionOptions } from '@/api/employee'
 import { fetchRiskEmployees, fetchSkillCoverage, fetchSuccession } from '@/api/planning'
-import type { NameValue, PositionOption, RiskEmployee, SuccessionCandidate } from '@/api/types'
+import type { PositionOption, RiskEmployee, SkillCoverage, SuccessionCandidate } from '@/api/types'
 
 const positions = ref<PositionOption[]>([])
 const positionId = ref<number | null>(null)
@@ -11,7 +11,7 @@ const limit = ref(10)
 
 const loading = ref(false)
 const candidates = ref<SuccessionCandidate[]>([])
-const coverage = ref<NameValue[]>([])
+const coverage = ref<SkillCoverage[]>([])
 
 const riskLoading = ref(false)
 const riskList = ref<RiskEmployee[]>([])
@@ -34,7 +34,8 @@ async function loadByPosition() {
 async function loadRisk() {
   riskLoading.value = true
   try {
-    riskList.value = await fetchRiskEmployees(limit.value)
+    const page = await fetchRiskEmployees(limit.value)
+    riskList.value = page.records
   } finally {
     riskLoading.value = false
   }
@@ -93,14 +94,16 @@ onMounted(async () => {
     <el-card shadow="never" style="margin-top: 16px">
       <template #header>继任候选人（按技能匹配度排序）</template>
       <el-table v-loading="loading" :data="candidates" stripe border>
-        <el-table-column prop="name" label="姓名" width="90" />
+        <el-table-column label="姓名" width="90">
+          <template #default="{ row }">{{ row.employeeName ?? row.name ?? '-' }}</template>
+        </el-table-column>
         <el-table-column prop="empNo" label="工号" width="120" />
         <el-table-column prop="department" label="部门" width="110" />
-        <el-table-column prop="jobRank" label="当前职级" width="90" />
+        <el-table-column prop="currentPosition" label="当前岗位" width="110" />
         <el-table-column prop="levelTier" label="层级" width="90" />
         <el-table-column prop="tenureYears" label="司龄" width="80" />
-        <el-table-column prop="perfScore" label="绩效" width="80" />
-        <el-table-column prop="potentialLevel" label="潜力" width="130" />
+        <el-table-column prop="performanceScore" label="绩效" width="80" />
+        <el-table-column prop="potentialScore" label="潜力分" width="90" />
         <el-table-column label="技能匹配度" min-width="200">
           <template #default="{ row }">
             <el-progress
@@ -109,7 +112,7 @@ onMounted(async () => {
               :stroke-width="14"
             >
               <span style="font-size: 12px">
-                {{ row.matched }}/{{ row.coreRequire }} 项（{{ row.matchScore ?? 0 }}%）
+                {{ row.matchedSkillCount ?? 0 }}/{{ row.requiredSkillCount ?? 0 }} 项（{{ row.matchScore ?? 0 }} 分）
               </span>
             </el-progress>
           </template>
@@ -129,16 +132,16 @@ onMounted(async () => {
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>该岗位核心技能的全公司覆盖人数（越少越是共性缺口）</template>
-          <div v-for="item in coverage" :key="item.name" class="dist-row">
-            <span class="dist-name">{{ item.name }}</span>
+          <div v-for="item in coverage" :key="item.skillId" class="dist-row">
+            <span class="dist-name">{{ item.skillName }}</span>
             <el-progress
-              :percentage="Math.min(item.value, 100)"
+              :percentage="item.coverageRate ?? 0"
               :show-text="false"
               :stroke-width="14"
               color="#e6a23c"
               style="flex: 1"
             />
-            <span class="dist-count">{{ item.value }} 人</span>
+            <span class="dist-count">{{ item.qualifiedCount }} / {{ item.requiredCount }} 人</span>
           </div>
           <el-empty v-if="coverage.length === 0" description="选择岗位后显示" :image-size="60" />
         </el-card>
@@ -147,16 +150,18 @@ onMounted(async () => {
         <el-card shadow="never">
           <template #header>流失风险名单（按风险分倒序）</template>
           <el-table v-loading="riskLoading" :data="riskList" stripe height="320">
-            <el-table-column prop="name" label="姓名" width="90" />
+            <el-table-column label="姓名" width="90">
+              <template #default="{ row }">{{ row.employeeName ?? row.name ?? '-' }}</template>
+            </el-table-column>
             <el-table-column prop="department" label="部门" width="110" />
-            <el-table-column prop="jobRank" label="职级" width="90" />
+            <el-table-column prop="currentPosition" label="岗位" width="110" />
             <el-table-column prop="riskScore" label="风险分" width="90" />
             <el-table-column label="等级" width="100">
               <template #default="{ row }">
                 <el-tag :type="warningType(row.warningLevel)">{{ row.warningLevel }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="potentialLevel" label="潜力" min-width="120" />
+            <el-table-column prop="handleStatus" label="处理状态" min-width="100" />
           </el-table>
         </el-card>
       </el-col>

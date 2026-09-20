@@ -98,30 +98,71 @@ export interface PositionOption {
 export interface SuccessionCandidate {
   employeeId: number
   empNo: string
-  name: string
+  employeeName?: string | null
+  name?: string | null
   department?: string | null
+  currentPosition?: string | null
+  workYears?: number | null
+  matchScore?: number | null
+  skillScore?: number | null
+  performanceScore?: number | null
+  potentialScore?: number | null
+  experienceScore?: number | null
+  matchedSkillCount?: number
+  requiredSkillCount?: number
+  missingSkills?: string[]
+  readiness?: string | null
+  preparationMonths?: number | null
+  recommendationReason?: string | null
+  dataWarnings?: string[]
   jobRank?: string | null
   levelTier?: string | null
   tenureYears?: number | null
   perfScore?: number | null
   potentialLevel?: string | null
   warningLevel?: string | null
-  coreRequire: number
-  matched: number
-  matchScore?: number | null
+  coreRequire?: number
+  matched?: number
 }
 
 /** 流失风险名单 */
 export interface RiskEmployee {
+  id?: number
   employeeId: number
-  empNo: string
-  name: string
+  empNo?: string
+  employeeName?: string | null
+  name?: string | null
   department?: string | null
-  jobRank?: string | null
+  currentPosition?: string | null
   riskScore?: number | null
   warningLevel?: string | null
-  potentialLevel?: string | null
-  talentTag?: string | null
+  handleStatus?: string | null
+  handler?: string | null
+  handleRemark?: string | null
+}
+
+export interface SkillCoverage {
+  skillId: number
+  skillName: string
+  requirementType?: string | null
+  requiredLevel?: string | null
+  requiredCount: number
+  qualifiedCount: number
+  gapCount: number
+  coverageRate: number
+}
+
+export interface PlanningDashboard {
+  positionCount: number
+  keyPositionCount: number
+  coveredKeyPositionCount: number
+  keyPositionCoverageRate: number
+  uncoveredKeyPositionCount: number
+  readyNowCandidateCount: number
+  totalTalentGap: number
+  highRiskEmployeeCount: number
+  unhandledWarningCount: number
+  readinessDistribution: Record<string, number>
 }
 
 /** 课程条目 */
