@@ -229,6 +229,18 @@ cmd /c "D:\Develop\MySQL80\bin\mysql.exe -uroot -p20050312 --default-character-s
 财务与风控(16)、人力与组织(18)、行政与流程(12)、通用职业能力(31)。
 脚本可以重复执行，自己新建的技能不会被它改动。
 
+### 2.2 数据分析与报告（模型日志 / 报表 / 人才流动）
+
+再执行 `sql/talent_analysis.sql`，会给 `model_log`（模型训练日志）、`report` / `report_template`
+（自定义报表）补全字段，并新建 `emp_movement`（人才流动记录）：
+
+```bat
+cmd /c "D:\Develop\MySQL80\bin\mysql.exe -uroot -p20050312 --default-character-set=utf8mb4 < sql\talent_analysis.sql"
+```
+
+跑完会初始化 6 条模型训练日志（含一次失败的训练）、3 个报表模板、以及 1000 条按司龄倒推出来的入职事件。
+分析模块的「梯队整体状态 / 人才流动趋势 / 模型效果 / 自定义报表」四个页签都基于这些数据。
+
 ### 3. 几个字段的说明
 
 - 数据集只给了「绩效评分」一个分数，没有年份，统一记为 **2026 年度**（`emp_performance.perf_year`）。

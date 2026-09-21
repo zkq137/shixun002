@@ -2,6 +2,8 @@ package com.talent.analysis.controller;
 
 import com.talent.analysis.service.AnalysisService;
 import com.talent.analysis.vo.DashboardVO;
+import com.talent.analysis.vo.FlowTrendVO;
+import com.talent.analysis.vo.PipelineVO;
 import com.talent.common.result.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,5 +26,17 @@ public class AnalysisController {
     @GetMapping("/dashboard")
     public Result<DashboardVO> dashboard() {
         return Result.success(analysisService.dashboard());
+    }
+
+    /** 梯队整体状态：结构 + 质量 + 风险 + 健康度评分和建议 */
+    @GetMapping("/pipeline")
+    public Result<PipelineVO> pipeline() {
+        return Result.success(analysisService.pipeline());
+    }
+
+    /** 人才流动趋势：流入趋势、各批次员工画像、流动事件构成 */
+    @GetMapping("/flow-trend")
+    public Result<FlowTrendVO> flowTrend() {
+        return Result.success(analysisService.flowTrend());
     }
 }

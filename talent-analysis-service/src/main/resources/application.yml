@@ -50,3 +50,9 @@ mybatis-plus:
 logging:
   level:
     com.talent: debug
+
+# 数据集里的绩效没有年份，统一按这一年查；报表溯源用到的版本号也放这里
+talent:
+  perf-year: 2026
+  dataset-version: dataset-v2
+  model-version: v1.2
