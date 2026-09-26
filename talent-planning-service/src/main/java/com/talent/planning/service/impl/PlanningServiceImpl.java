@@ -161,6 +161,7 @@ public class PlanningServiceImpl implements PlanningService {
         ResignWarningRecord record = resignWarningMapper.selectById(id);
         if (record == null) throw notFound("流失预警不存在");
         if (dto == null || !HANDLE_STATUSES.contains(dto.getHandleStatus())) throw validation("处理状态只能是未处理、处理中或已处理");
+        if (!StringUtils.hasText(dto.getHandler())) throw validation("处理人不能为空");
         record.setHandleStatus(dto.getHandleStatus()); record.setHandler(dto.getHandler().trim());
         record.setHandleRemark(StringUtils.hasText(dto.getRemark()) ? dto.getRemark().trim() : null);
         record.setHandledAt("未处理".equals(dto.getHandleStatus()) ? null : LocalDateTime.now());

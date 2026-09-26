@@ -17,7 +17,7 @@ public class SuccessionScoreCalculator {
                 : BigDecimal.valueOf(source.getMatchedSkillCount() == null ? 0 : source.getMatchedSkillCount())
                 .multiply(BigDecimal.valueOf(100))
                 .divide(BigDecimal.valueOf(source.getRequiredSkillCount()), 2, RoundingMode.HALF_UP);
-        BigDecimal performance = clamp(source.getPerformanceScore());
+        BigDecimal performance = normalizePerformance(source.getPerformanceScore());
         BigDecimal potential = clamp(source.getPotentialScore());
         BigDecimal experience = BigDecimal.valueOf(Math.min(100,
                 Math.max(0, (source.getWorkYears() == null ? 0 : source.getWorkYears()) * 10L))).setScale(2);
@@ -67,5 +67,13 @@ public class SuccessionScoreCalculator {
     private BigDecimal clamp(BigDecimal value) {
         if (value == null) return BigDecimal.ZERO.setScale(2);
         return value.max(BigDecimal.ZERO).min(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /** 团队历史数据使用 5 分制，新版导入数据可能直接使用百分制。 */
+    private BigDecimal normalizePerformance(BigDecimal value) {
+        if (value == null) return BigDecimal.ZERO.setScale(2);
+        BigDecimal normalized = value.compareTo(BigDecimal.valueOf(5)) <= 0
+                ? value.multiply(BigDecimal.valueOf(20)) : value;
+        return clamp(normalized);
     }
 }

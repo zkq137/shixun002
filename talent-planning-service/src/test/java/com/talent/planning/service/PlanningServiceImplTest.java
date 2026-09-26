@@ -111,6 +111,21 @@ class PlanningServiceImplTest {
         verify(resignWarningMapper).updateById(record);
     }
 
+    @Test
+    void rejectsBlankRiskHandlerWithoutNullPointer() {
+        ResignWarningRecord record = new ResignWarningRecord();
+        record.setId(4L);
+        when(resignWarningMapper.selectById(4L)).thenReturn(record);
+        RiskHandleDTO dto = new RiskHandleDTO();
+        dto.setHandleStatus("处理中");
+        dto.setHandler("  ");
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.handleEmployeeRisk(4L, dto));
+
+        assertEquals(400, error.getCode());
+        verify(resignWarningMapper, never()).updateById(any());
+    }
+
     private Position position() {
         Position position = new Position();
         position.setId(1L);

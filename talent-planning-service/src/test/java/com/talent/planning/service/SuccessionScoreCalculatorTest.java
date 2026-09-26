@@ -27,6 +27,16 @@ class SuccessionScoreCalculatorTest {
     }
 
     @Test
+    void normalizesFivePointPerformanceToPercentage() {
+        CandidateSourceVO source = source(1, 1, "4", "100", 0);
+
+        SuccessionCandidateVO result = calculator.calculate(source, List.of());
+
+        assertEquals(new BigDecimal("80.00"), result.getPerformanceScore());
+        assertEquals(new BigDecimal("86.00"), result.getMatchScore());
+    }
+
+    @Test
     void usesZeroForMissingDataWithoutReweighting() {
         CandidateSourceVO source = source(0, 0, null, null, 4);
 
