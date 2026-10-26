@@ -9,6 +9,8 @@ spring:
       discovery:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:}
+        # 多网卡机器（VMware/Radmin）可能自动选错 IP；设 NACOS_CLIENT_IP 可覆盖，不设则自动探测
+        ip: ${NACOS_CLIENT_IP:}
       config:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:}
@@ -32,9 +34,10 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/talent_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 20050312
+    # 默认连本机；切共享库/集群环境时用环境变量覆盖，不用改代码重新打包
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:talent_db}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:20050312}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2

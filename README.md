@@ -7,6 +7,10 @@
 >
 > 前端在 `talent-web`（Vue 3 + Vite + TypeScript + Element Plus），启动方式见
 > [talent-web/README.md](talent-web/README.md)。
+>
+> 需要把 Nacos 从单机升级成集群？看 [Nacos集群改造指南.md](Nacos集群改造指南.md)。
+>
+> 五个人共用一个环境（共享 MySQL + 单机 Nacos）？看 [共享环境接入说明.md](共享环境接入说明.md)。
 
 ## 一、工程结构
 

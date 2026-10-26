@@ -9,6 +9,8 @@ spring:
       discovery:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:}
+        # 多网卡机器（VMware/Radmin）可能自动选错 IP；设 NACOS_CLIENT_IP 可覆盖，不设则自动探测
+        ip: ${NACOS_CLIENT_IP:}
       config:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:}
