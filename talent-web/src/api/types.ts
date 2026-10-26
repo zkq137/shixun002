@@ -98,30 +98,133 @@ export interface PositionOption {
 export interface SuccessionCandidate {
   employeeId: number
   empNo: string
-  name: string
+  employeeName?: string | null
+  name?: string | null
   department?: string | null
+  currentPosition?: string | null
+  workYears?: number | null
+  matchScore?: number | null
+  skillScore?: number | null
+  performanceScore?: number | null
+  potentialScore?: number | null
+  experienceScore?: number | null
+  matchedSkillCount?: number
+  requiredSkillCount?: number
+  missingSkills?: string[]
+  readiness?: string | null
+  preparationMonths?: number | null
+  recommendationReason?: string | null
+  dataWarnings?: string[]
   jobRank?: string | null
   levelTier?: string | null
   tenureYears?: number | null
   perfScore?: number | null
   potentialLevel?: string | null
   warningLevel?: string | null
-  coreRequire: number
-  matched: number
-  matchScore?: number | null
+  coreRequire?: number
+  matched?: number
+}
+
+/** 规划岗位及继任概况 */
+export interface PlanningPosition {
+  id: number
+  positionName: string
+  positionLevel?: string | null
+  key?: boolean | null
+  incumbentCount?: number | null
+  successorCount?: number | null
+  readyNowCount?: number | null
+  successionCoverageRate?: number | null
+  riskLevel?: string | null
+  riskDescription?: string | null
+  skills?: SkillCoverage[]
 }
 
 /** 流失风险名单 */
 export interface RiskEmployee {
+  id?: number
   employeeId: number
-  empNo: string
-  name: string
+  empNo?: string
+  employeeName?: string | null
+  name?: string | null
   department?: string | null
-  jobRank?: string | null
+  currentPosition?: string | null
   riskScore?: number | null
   warningLevel?: string | null
-  potentialLevel?: string | null
-  talentTag?: string | null
+  handleStatus?: string | null
+  handler?: string | null
+  handleRemark?: string | null
+  warningTime?: string | null
+  handledAt?: string | null
+}
+
+export interface RiskEmployeeQuery {
+  pageNum?: number
+  pageSize?: number
+  warningLevel?: string
+  handleStatus?: string
+  department?: string
+  keyword?: string
+}
+
+export interface RiskHandleForm {
+  handleStatus: string
+  handler: string
+  remark?: string
+}
+
+export interface SkillCoverage {
+  skillId: number
+  skillName: string
+  requirementType?: string | null
+  requiredLevel?: string | null
+  requiredCount: number
+  qualifiedCount: number
+  gapCount: number
+  coverageRate: number
+}
+
+export interface PlanningDashboard {
+  positionCount: number
+  keyPositionCount: number
+  coveredKeyPositionCount: number
+  keyPositionCoverageRate: number
+  uncoveredKeyPositionCount: number
+  readyNowCandidateCount: number
+  totalTalentGap: number
+  highRiskEmployeeCount: number
+  unhandledWarningCount: number
+  readinessDistribution: Record<string, number>
+  highRiskPositions?: PositionRisk[]
+  talentPoolGaps?: TalentPool[]
+}
+
+export interface PositionRisk {
+  id: number
+  positionId: number
+  positionName?: string | null
+  positionLevel?: string | null
+  key?: boolean | null
+  riskLevel?: string | null
+  riskDescription?: string | null
+  riskScope?: string | null
+  incumbentCount?: number | null
+  successorCount?: number | null
+  readyNowCount?: number | null
+  highRiskEmployeeCount?: number | null
+  skillCoverageRate?: number | null
+  checkedAt?: string | null
+}
+
+export interface TalentPool {
+  level: string
+  totalCapacity: number
+  currentCount: number
+  gapCount: number
+  coverageRate: number
+  readyNowCount: number
+  readyOneYearCount: number
+  updatedAt?: string | null
 }
 
 /** 课程条目 */

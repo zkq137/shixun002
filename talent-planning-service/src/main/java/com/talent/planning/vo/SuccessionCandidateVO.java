@@ -3,30 +3,26 @@ package com.talent.planning.vo;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
-/**
- * 关键岗位的继任候选人。
- */
 @Data
 public class SuccessionCandidateVO {
-
     private Long employeeId;
     private String empNo;
-    private String name;
+    private String employeeName;
     private String department;
-    private String jobRank;
-    private String levelTier;
-    private BigDecimal tenureYears;
-    private BigDecimal perfScore;
-    private String potentialLevel;
-    private String warningLevel;
-
-    /** 目标岗位要求的核心技能条数 */
-    private Integer coreRequire;
-
-    /** 候选人已具备其中的几条 */
-    private Integer matched;
-
-    /** 匹配度 = 已具备 / 要求，百分比 */
+    private String currentPosition;
+    private Integer workYears;
     private BigDecimal matchScore;
+    private BigDecimal skillScore;
+    private BigDecimal performanceScore;
+    private BigDecimal potentialScore;
+    private BigDecimal experienceScore;
+    private Integer matchedSkillCount;
+    private Integer requiredSkillCount;
+    private List<String> missingSkills;
+    private String readiness;
+    private Integer preparationMonths;
+    private String recommendationReason;
+    private List<String> dataWarnings;
 }

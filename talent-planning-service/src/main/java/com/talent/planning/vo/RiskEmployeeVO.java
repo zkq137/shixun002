@@ -3,20 +3,21 @@ package com.talent.planning.vo;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-/**
- * 流失风险名单里的一行。
- */
 @Data
 public class RiskEmployeeVO {
-
+    private Long id;
     private Long employeeId;
     private String empNo;
-    private String name;
+    private String employeeName;
     private String department;
-    private String jobRank;
+    private String currentPosition;
     private BigDecimal riskScore;
     private String warningLevel;
-    private String potentialLevel;
-    private String talentTag;
+    private LocalDateTime warningTime;
+    private String handleStatus;
+    private String handler;
+    private String handleRemark;
+    private LocalDateTime handledAt;
 }

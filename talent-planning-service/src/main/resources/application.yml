@@ -34,10 +34,11 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # 默认连本机；切共享库/集群环境时用环境变量覆盖，不用改代码重新打包
+    # 默认连本机；切共享库/集群环境时用 DB_* 环境变量覆盖。
+    # 密码同时兼容同学用的 SPRING_DATASOURCE_PASSWORD，两者都不设时回落到本地默认值。
     url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:talent_db}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${DB_USER:root}
-    password: ${DB_PASSWORD:20050312}
+    password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:20050312}}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
