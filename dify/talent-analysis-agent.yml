@@ -1,0 +1,776 @@
+app:
+  description: 人才梯队健康度、流动趋势、自定义报表与模型效果分析
+  icon: 📊
+  icon_background: '#EAF4FF'
+  mode: advanced-chat
+  name: 数据分析与报告智能体
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - name: base_url
+    value: http://host.docker.internal:9090
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .xlsx
+      - .xls
+      allowed_file_types:
+      - document
+      allowed_file_upload_methods:
+      - local_file
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      number_limits: 1
+    opening_statement: 你好，我是人才数据分析助手。可以分析梯队健康度、人才流动趋势、生成自定义报表、查看模型效果并追溯训练日志。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 分析当前人才梯队健康度
+    - 查看人才流动趋势和主要风险
+    - 按部门生成人数和平均绩效报表
+    - 查看模型运行效果最好的版本
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: start-source-planner-target
+      source: start
+      sourceHandle: source
+      target: planner
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: code
+      id: planner-source-parse-target
+      source: planner
+      sourceHandle: source
+      target: parse
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: if-else
+      id: parse-source-if_get-target
+      source: parse
+      sourceHandle: source
+      target: if_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_get-true-http_get-target
+      source: if_get
+      sourceHandle: 'true'
+      target: http_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: llm
+      id: http_get-source-analyst_get-target
+      source: http_get
+      sourceHandle: source
+      target: analyst_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
+      id: analyst_get-source-answer_get-target
+      source: analyst_get
+      sourceHandle: source
+      target: answer_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: if_get-false-if_post-target
+      source: if_get
+      sourceHandle: 'false'
+      target: if_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_post-true-http_post-target
+      source: if_post
+      sourceHandle: 'true'
+      target: http_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: llm
+      id: http_post-source-analyst_post-target
+      source: http_post
+      sourceHandle: source
+      target: analyst_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
+      id: analyst_post-source-answer_post-target
+      source: analyst_post
+      sourceHandle: source
+      target: answer_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: if_post-false-if_delete-target
+      source: if_post
+      sourceHandle: 'false'
+      target: if_delete
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_delete-true-http_delete-target
+      source: if_delete
+      sourceHandle: 'true'
+      target: http_delete
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: answer
+      id: http_delete-source-answer_delete-target
+      source: http_delete
+      sourceHandle: source
+      target: answer_delete
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: code
+      id: if_delete-false-noop-target
+      source: if_delete
+      sourceHandle: 'false'
+      target: noop
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: answer
+      id: noop-source-answer_noop-target
+      source: noop
+      sourceHandle: source
+      target: answer_noop
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 分析需求
+          max_length: 2000
+          options: []
+          required: true
+          type: text-input
+          variable: query
+      height: 108
+      id: start
+      position:
+        x: 30
+        y: 320
+      positionAbsolute:
+        x: 30
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: planner-system
+          role: system
+          text: "你是「企业人才数据分析与报告」智能体。\n你的任务：把用户的自然语言需求转换成一个后端 API 调用计划。\n\n只输出一个 JSON 对象，不要输出 Markdown、解释或多余文字。\nJSON 格式：\n{\"method\":\"GET|POST|DELETE|NONE\",\"path\":\"/api/analysis/...\",\"body\":{},\"summary\":\"一句话说明要做什么\"}\n\n规则：\n1. GET 查询参数直接拼在 path 里。\n2. POST 请求体放在 body 对象中。\n3. 删除报表或模板属于危险操作。只有用户明确说“确认删除”时才输出 DELETE，否则 method=NONE 并请用户确认。\n4. 报表生成只能使用 options 中的维度/指标 key；未给指标时默认 count。\n5. 同名报表模板没有修改接口。用户要改模板时，请先删除旧模板并重新保存，必须明确确认删除。\n6. 当前没有人才流入/流出/晋升的预测模型接口，也没有预测数据导入导出接口。\n   用户要求这些功能时，method=NONE，并说明当前只能分析历史流动趋势，不能伪造预测结果。\n7. 当前没有仪表盘配置导出、报表模板导入接口。遇到这些需求时 method=NONE 并说明限制。\n8. 不要编造接口，不要声称执行了未调用接口的操作。\n\n可用接口：\n【人才盘点与梯队健康度】\nGET /api/analysis/dashboard\nGET /api/analysis/pipeline\nGET /api/analysis/flow-trend\n\n【自定义报表】\nGET  /api/analysis/report/options\nPOST /api/analysis/report/generate\n     body: {reportName,dimensions:[],metrics:[],filters:{},save:false}\nPOST /api/analysis/report/from-template/{templateId}\nGET  /api/analysis/report/history\nGET  /api/analysis/report/templates\n\
+            POST /api/analysis/report/templates\n     body: {reportName,dimensions:[],metrics:[],filters:{},save:false}\nDELETE /api/analysis/report/templates/{id}\nGET  /api/analysis/report/{id}\nDELETE /api/analysis/report/{id}\n\n【模型运行效果与日志】\nGET /api/analysis/model/effect\nGET /api/analysis/model/logs?modelName=&status=&version=&pageNum=1&pageSize=10\nGET /api/analysis/model/logs/{id}\nGET /api/analysis/model/names\n\n报表维度 key：\ndepartment, levelTier, position, positionType, potentialLevel, talentTag,\nwarningLevel, workMode, gender, ageRange, tenureRange, perfLevel\n\n报表指标 key：\ncount, avgAge, avgTenure, avgSalary, avgPerf, avgPotential, avgRiskScore,\nhighRiskCount, middleRiskCount, coreTalentCount, reserveTalentCount,\nhighPotentialCount\n\n常用报表示例：\n- 部门人数和平均绩效：\n  {\"dimensions\":[\"department\"],\"metrics\":[\"count\",\"avgPerf\"]}\n- 人才标签与流失风险交叉：\n  {\"dimensions\":[\"talentTag\",\"warningLevel\"],\"metrics\":[\"count\"]}\n- 高风险员工部门分布：\n  {\"dimensions\":[\"department\"],\"metrics\"\
+            :[\"count\",\"highRiskCount\"],\n   \"filters\":{\"warningLevel\":\"高风险\"}}\n"
+        - id: planner-user
+          role: user
+          text: 用户需求：{{#start.query#}}
+        selected: false
+        title: 解析分析意图
+        type: llm
+        variables:
+        - value_selector:
+          - start
+          - query
+          variable: query
+        vision:
+          enabled: false
+      height: 98
+      id: planner
+      position:
+        x: 330
+        y: 320
+      positionAbsolute:
+        x: 330
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\nimport re\n\ndef main(plan: str) -> dict:\n    text = (plan or \"\").strip()\n    if text.startswith(\"```\"):\n        text = re.sub(r\"^```[a-zA-Z]*\\s*\", \"\", text)\n        text = re.sub(r\"\\s*```$\", \"\", text)\n    start = text.find(\"{\")\n    end = text.rfind(\"}\")\n    if start >= 0 and end > start:\n        text = text[start:end + 1]\n    try:\n        data = json.loads(text)\n    except Exception:\n        data = {}\n    method = str(data.get(\"method\", \"NONE\")).upper()\n    if method not in (\"GET\", \"POST\", \"DELETE\", \"NONE\"):\n        method = \"NONE\"\n    path = str(data.get(\"path\", \"\") or \"\")\n    if path and not path.startswith(\"/\"):\n        path = \"/\" + path\n    body = data.get(\"body\") or {}\n    if not isinstance(body, dict):\n        body = {}\n    summary = str(data.get(\"summary\", \"\") or \"\")\n    return {\n        \"method\": method,\n        \"path\": path,\n        \"body\": json.dumps(body, ensure_ascii=False),\n\
+          \        \"summary\": summary,\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          method:
+            children: null
+            type: string
+          path:
+            children: null
+            type: string
+          body:
+            children: null
+            type: string
+          summary:
+            children: null
+            type: string
+        selected: false
+        title: 解析调用计划
+        type: code
+        variables:
+        - value_selector:
+          - planner
+          - text
+          variable: plan
+      height: 54
+      id: parse
+      position:
+        x: 630
+        y: 320
+      positionAbsolute:
+        x: 630
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-100000000001
+            value: GET
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 GET 查询
+        type: if-else
+      height: 126
+      id: if_get
+      position:
+        x: 930
+        y: 320
+      positionAbsolute:
+        x: 930
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: get
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: GET 分析接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_get
+      position:
+        x: 1230
+        y: 120
+      positionAbsolute:
+        x: 1230
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: analyst_get-system
+          role: system
+          text: '你是企业人力资源战略数据分析专家。
+
+            你会收到用户的原始问题和后端接口返回的真实 JSON。
+
+
+            请输出中文分析结论，要求：
+
+            1. 先给出 2-4 条最重要的发现，引用具体数字。
+
+            2. 按“整体状态、结构、风险、趋势、模型效果、行动建议”中与数据相关的部分展开。
+
+            3. 区分事实和推断；推断必须写明依据，禁止编造数据中不存在的信息。
+
+            4. 如果返回 code 不是 200，直接解释错误原因和修正建议。
+
+            5. 输出适合业务人员阅读，使用简短标题和项目符号，不要输出原始 JSON。
+
+            6. 如果用户询问未来预测，只能基于历史趋势给出观察和情景判断，并明确说明这不是预测模型结果。
+
+            7. 不得复述“系统预校验”文本，也不得输出 method/path/body 调用计划。
+
+            '
+        - id: analyst_get-user
+          role: user
+          text: '用户问题：{{#start.query#}}
+
+
+            接口返回：
+
+            {{#http_get.body#}}'
+        selected: false
+        title: AI 解读分析结果
+        type: llm
+        variables:
+        - value_selector:
+          - start
+          - query
+          variable: query
+        - value_selector:
+          - http_get
+          - body
+          variable: result
+        vision:
+          enabled: false
+      height: 98
+      id: analyst_get
+      position:
+        x: 1530
+        y: 120
+      positionAbsolute:
+        x: 1530
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#analyst_get.text#}}'
+        desc: ''
+        selected: false
+        title: 分析结论
+        type: answer
+        variables: []
+      height: 103
+      id: answer_get
+      position:
+        x: 1830
+        y: 120
+      positionAbsolute:
+        x: 1830
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-100000000002
+            value: POST
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 POST 操作
+        type: if-else
+      height: 126
+      id: if_post
+      position:
+        x: 930
+        y: 500
+      positionAbsolute:
+        x: 930
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: '{{#parse.body#}}'
+          type: json
+        desc: ''
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: POST 分析接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_post
+      position:
+        x: 1230
+        y: 500
+      positionAbsolute:
+        x: 1230
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: analyst_post-system
+          role: system
+          text: '你是企业人力资源战略数据分析专家。
+
+            你会收到用户的原始问题和后端接口返回的真实 JSON。
+
+
+            请输出中文分析结论，要求：
+
+            1. 先给出 2-4 条最重要的发现，引用具体数字。
+
+            2. 按“整体状态、结构、风险、趋势、模型效果、行动建议”中与数据相关的部分展开。
+
+            3. 区分事实和推断；推断必须写明依据，禁止编造数据中不存在的信息。
+
+            4. 如果返回 code 不是 200，直接解释错误原因和修正建议。
+
+            5. 输出适合业务人员阅读，使用简短标题和项目符号，不要输出原始 JSON。
+
+            6. 如果用户询问未来预测，只能基于历史趋势给出观察和情景判断，并明确说明这不是预测模型结果。
+
+            7. 不得复述“系统预校验”文本，也不得输出 method/path/body 调用计划。
+
+            '
+        - id: analyst_post-user
+          role: user
+          text: '用户问题：{{#start.query#}}
+
+
+            接口返回：
+
+            {{#http_post.body#}}'
+        selected: false
+        title: AI 解读报表结果
+        type: llm
+        variables:
+        - value_selector:
+          - start
+          - query
+          variable: query
+        - value_selector:
+          - http_post
+          - body
+          variable: result
+        vision:
+          enabled: false
+      height: 98
+      id: analyst_post
+      position:
+        x: 1530
+        y: 500
+      positionAbsolute:
+        x: 1530
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#analyst_post.text#}}'
+        desc: ''
+        selected: false
+        title: 操作分析
+        type: answer
+        variables: []
+      height: 103
+      id: answer_post
+      position:
+        x: 1830
+        y: 500
+      positionAbsolute:
+        x: 1830
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-100000000003
+            value: DELETE
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 DELETE 操作
+        type: if-else
+      height: 126
+      id: if_delete
+      position:
+        x: 930
+        y: 700
+      positionAbsolute:
+        x: 930
+        y: 700
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: delete
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: DELETE 分析接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_delete
+      position:
+        x: 1230
+        y: 700
+      positionAbsolute:
+        x: 1230
+        y: 700
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '已执行：{{#parse.summary#}}
+
+
+          返回：
+
+          ```json
+
+          {{#http_delete.body#}}
+
+          ```'
+        desc: ''
+        selected: false
+        title: 删除结果
+        type: answer
+        variables: []
+      height: 103
+      id: answer_delete
+      position:
+        x: 1530
+        y: 700
+      positionAbsolute:
+        x: 1530
+        y: 700
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "def main(summary: str) -> dict:\n    return {\n        \"message\": summary or \"该需求当前无法通过已实现接口完成。\"\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          message:
+            children: null
+            type: string
+        selected: false
+        title: 生成能力提示
+        type: code
+        variables:
+        - value_selector:
+          - parse
+          - summary
+          variable: summary
+      height: 54
+      id: noop
+      position:
+        x: 1230
+        y: 880
+      positionAbsolute:
+        x: 1230
+        y: 880
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#noop.message#}}'
+        desc: ''
+        selected: false
+        title: 提示
+        type: answer
+        variables: []
+      height: 103
+      id: answer_noop
+      position:
+        x: 1530
+        y: 880
+      positionAbsolute:
+        x: 1530
+        y: 880
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244

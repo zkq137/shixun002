@@ -61,7 +61,7 @@ async function showRiskDetail(row: RiskEmployee) { if (!row.id) return; riskDeta
 function openRiskHandle(row: RiskEmployee) { selectedRisk.value = row; riskForm.handleStatus = row.handleStatus ?? '处理中'; riskForm.handler = row.handler ?? ''; riskForm.remark = row.handleRemark ?? ''; riskHandleVisible.value = true }
 async function saveRiskHandle() { if (!selectedRisk.value?.id || !riskForm.handler.trim()) { ElMessage.warning('请填写处理人'); return }; riskHandleLoading.value = true; try { await handleRiskEmployee(selectedRisk.value.id, { handleStatus: riskForm.handleStatus, handler: riskForm.handler.trim(), remark: riskForm.remark?.trim() }); riskHandleVisible.value = false; ElMessage.success('预警处理结果已保存'); await Promise.all([loadRisks(), loadDashboard()]) } finally { riskHandleLoading.value = false } }
 function searchRisks() { riskPageNum.value = 1; loadRisks() }
-async function loadAll() { await Promise.all([loadDashboard(), loadPositions(), loadPools(), loadRisks(), loadPositionRisks()]) }
+async function loadAll() { await Promise.allSettled([loadDashboard(), loadPositions(), loadPools(), loadRisks(), loadPositionRisks()]) }
 onMounted(loadAll)
 </script>
 
@@ -76,7 +76,9 @@ onMounted(loadAll)
             <el-col v-for="item in [['岗位总数', dashboard.positionCount], ['关键岗位', dashboard.keyPositionCount], ['无继任岗位', dashboard.uncoveredKeyPositionCount], ['立即可继任', dashboard.readyNowCandidateCount], ['人才池缺口', dashboard.totalTalentGap], ['高风险员工', dashboard.highRiskEmployeeCount], ['未处理预警', dashboard.unhandledWarningCount]]" :key="item[0]" :span="3"><el-card shadow="never" style="margin-bottom: 12px"><div class="stat-label">{{ item[0] }}</div><div class="stat-value">{{ valueOf(item[1] as number) }}</div></el-card></el-col>
             <el-col :span="3"><el-card shadow="never" style="margin-bottom: 12px"><div class="stat-label">关键岗位覆盖率</div><div class="stat-value">{{ valueOf(dashboard.keyPositionCoverageRate) }}%</div></el-card></el-col>
           </el-row>
-          <el-empty v-else description="暂无看板数据" />
+          <el-card v-else shadow="never" style="margin-top: 16px">
+            <el-empty description="暂无看板数据，请确认梯队服务已启动" :image-size="96" />
+          </el-card>
           <el-row v-if="dashboard" :gutter="16">
             <el-col :span="12"><el-card shadow="never"><template #header>候选人准备度分布</template><div v-for="key in ['READY_NOW', 'READY_1_YEAR', 'READY_2_YEARS', 'NOT_READY']" :key="key" class="dist-row"><span class="dist-name">{{ readinessLabel(key) }}</span><el-progress :percentage="valueOf(dashboard.readinessDistribution?.[key])" :show-text="false" style="flex: 1" /><span class="dist-count">{{ valueOf(dashboard.readinessDistribution?.[key]) }} 人</span></div></el-card></el-col>
             <el-col :span="12"><el-card shadow="never"><template #header>高风险岗位</template><el-table :data="dashboard.highRiskPositions ?? []" stripe max-height="260"><el-table-column prop="positionName" label="岗位" min-width="130" /><el-table-column prop="riskLevel" label="等级" width="80"><template #default="{ row }"><el-tag :type="riskTag(row.riskLevel)">{{ row.riskLevel }}</el-tag></template></el-table-column><el-table-column prop="riskDescription" label="触发原因" min-width="220" /><template #empty><el-empty description="暂无高风险岗位" :image-size="55" /></template></el-table></el-card></el-col>

@@ -1,0 +1,1092 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "员工档案智能管理 API",
+    "version": "1.0.0",
+    "description": "智能企业人才梯队建设平台 —— 员工档案模块。\n包含员工单条/批量增删改查、技能树、历年绩效、潜力评估。\n所有接口统一返回 {code,message,data,timestamp}。\n"
+  },
+  "servers": [
+    {
+      "url": "http://10.1.249.82:9090",
+      "description": "当前局域网网关（已验证返回 200）"
+    },
+    {
+      "url": "http://26.37.52.184:9090",
+      "description": "Radmin VPN 地址（不随 DHCP 变化，更稳定）"
+    },
+    {
+      "url": "http://host.docker.internal:9090",
+      "description": "Dify 用 Docker 部署在同一台 Windows 时使用"
+    },
+    {
+      "url": "http://127.0.0.1:9090",
+      "description": "Dify 与后端同机且不是 Docker 部署时使用"
+    }
+  ],
+  "tags": [
+    {
+      "name": "employee",
+      "description": "员工档案"
+    },
+    {
+      "name": "skill",
+      "description": "技能树"
+    },
+    {
+      "name": "performance",
+      "description": "历年绩效"
+    },
+    {
+      "name": "potential",
+      "description": "潜力评估"
+    }
+  ],
+  "paths": {
+    "/api/employee/page": {
+      "get": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_page",
+        "summary": "分页查询员工（支持关键字、部门、岗位、标签、风险筛选）",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "姓名或工号"
+          },
+          {
+            "name": "department",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "positionId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "talentTag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warningLevel",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/{id}": {
+      "get": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_detail",
+        "summary": "员工详情（含薪酬、技能、培训）",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_update",
+        "summary": "修改员工",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_delete",
+        "summary": "删除员工（危险操作，调用前请与用户确认）",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee": {
+      "post": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_create",
+        "summary": "新增员工",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/batch/delete": {
+      "post": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_batch_delete",
+        "summary": "批量删除员工（危险操作，调用前请与用户确认）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ids"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/batch/update": {
+      "put": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_batch_update",
+        "summary": "批量修改部门/状态/办公方式/职级",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeBatchUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/options/positions": {
+      "get": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_position_options",
+        "summary": "岗位下拉列表",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/options/departments": {
+      "get": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_department_options",
+        "summary": "部门下拉列表",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/stats/department": {
+      "get": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_department_stats",
+        "summary": "各部门人数统计",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/employee/{id}/skills": {
+      "get": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_skills",
+        "summary": "查询员工技能",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "employee"
+        ],
+        "operationId": "employee_skills_update",
+        "summary": "覆盖设置员工技能（只传具体技能ID）",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "skillIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/skill/tree": {
+      "get": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_tree",
+        "summary": "完整技能树（分类+子技能，带引用人数）",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/skill/categories": {
+      "get": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_categories",
+        "summary": "技能分类列表",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/skill/children": {
+      "get": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_children",
+        "summary": "分类下的子技能",
+        "parameters": [
+          {
+            "name": "parentId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/skill/search": {
+      "get": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_search",
+        "summary": "按技能名或分类名搜索",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/skill": {
+      "post": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_create",
+        "summary": "新增分类或子技能（parentId=0 表示分类）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/skill/{id}": {
+      "put": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_update",
+        "summary": "修改技能/分类名称、说明、状态、排序或所属分类",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "skill"
+        ],
+        "operationId": "skill_delete",
+        "summary": "删除技能/分类（有子节点或被引用时会拒绝）",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/performance/employees/{employeeId}": {
+      "get": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_history",
+        "summary": "某员工历年绩效",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/performance/employees/{employeeId}/trend": {
+      "get": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_trend",
+        "summary": "绩效趋势（年份、分数、等级、维度、同比、趋势方向）",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/performance/employees/{employeeId}/compare": {
+      "get": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_compare",
+        "summary": "跨年份绩效对比",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "yearA",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "yearB",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/performance": {
+      "post": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_save",
+        "summary": "录入绩效（按员工+年份 upsert）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PerformanceSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/performance/batch": {
+      "post": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_batch",
+        "summary": "批量录入绩效",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PerformanceSave"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/performance/{id}": {
+      "put": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_update",
+        "summary": "修改绩效记录",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PerformanceSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "performance"
+        ],
+        "operationId": "performance_delete",
+        "summary": "删除绩效记录",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/potential/model": {
+      "get": {
+        "tags": [
+          "potential"
+        ],
+        "operationId": "potential_model",
+        "summary": "潜力量化模型（指标、权重、等级规则）",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/potential/model/init": {
+      "post": {
+        "tags": [
+          "potential"
+        ],
+        "operationId": "potential_model_init",
+        "summary": "用现有数据初始化潜力指标（force=true 覆盖已有）",
+        "parameters": [
+          {
+            "name": "force",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/potential/employees/{employeeId}": {
+      "get": {
+        "tags": [
+          "potential"
+        ],
+        "operationId": "potential_get",
+        "summary": "查询员工潜力指标与等级",
+        "parameters": [
+          {
+            "name": "employeeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/potential": {
+      "post": {
+        "tags": [
+          "potential"
+        ],
+        "operationId": "potential_save",
+        "summary": "录入单个员工潜力指标",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PotentialSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    },
+    "/api/potential/batch": {
+      "post": {
+        "tags": [
+          "potential"
+        ],
+        "operationId": "potential_batch",
+        "summary": "批量录入潜力指标",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PotentialSave"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Ok"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "Ok": {
+        "description": "统一返回 {code,message,data,timestamp}",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "integer",
+                  "example": 200
+                },
+                "message": {
+                  "type": "string",
+                  "example": "操作成功"
+                },
+                "data": {},
+                "timestamp": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Ids": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "EmployeeSave": {
+        "type": "object",
+        "required": [
+          "empNo",
+          "name",
+          "positionId"
+        ],
+        "properties": {
+          "empNo": {
+            "type": "string",
+            "example": "E90000001"
+          },
+          "name": {
+            "type": "string",
+            "example": "张三"
+          },
+          "gender": {
+            "type": "string",
+            "example": "男"
+          },
+          "age": {
+            "type": "integer",
+            "example": 28
+          },
+          "department": {
+            "type": "string",
+            "example": "研发中心"
+          },
+          "positionId": {
+            "type": "integer",
+            "example": 3
+          },
+          "levelTier": {
+            "type": "string",
+            "example": "员工层"
+          },
+          "jobRank": {
+            "type": "string",
+            "example": "中级"
+          },
+          "managerEmpNo": {
+            "type": "string"
+          },
+          "workMode": {
+            "type": "string",
+            "example": "现场办公"
+          },
+          "tenureYears": {
+            "type": "number",
+            "example": 1.5
+          },
+          "education": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "在职"
+          }
+        }
+      },
+      "EmployeeBatchUpdate": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "department": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "workMode": {
+            "type": "string"
+          },
+          "levelTier": {
+            "type": "string"
+          },
+          "jobRank": {
+            "type": "string"
+          }
+        }
+      },
+      "SkillSave": {
+        "type": "object",
+        "required": [
+          "skillName"
+        ],
+        "properties": {
+          "skillName": {
+            "type": "string",
+            "example": "Java"
+          },
+          "parentId": {
+            "type": "integer",
+            "example": 173,
+            "description": "0 表示新增分类"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "启用"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "PerformanceSave": {
+        "type": "object",
+        "required": [
+          "employeeId",
+          "perfYear",
+          "score"
+        ],
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "example": 1
+          },
+          "perfYear": {
+            "type": "integer",
+            "example": 2026
+          },
+          "score": {
+            "type": "number",
+            "example": 4.5
+          },
+          "grade": {
+            "type": "string",
+            "example": "A"
+          },
+          "dimensions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "example": {
+              "业绩": 4.5,
+              "协作": 4.2
+            }
+          }
+        }
+      },
+      "PotentialSave": {
+        "type": "object",
+        "required": [
+          "employeeId",
+          "indicators"
+        ],
+        "properties": {
+          "employeeId": {
+            "type": "integer",
+            "example": 1
+          },
+          "indicators": {
+            "type": "object",
+            "description": "六项指标 0~100",
+            "properties": {
+              "learningAgility": {
+                "type": "number",
+                "example": 80
+              },
+              "leadershipWillingness": {
+                "type": "number",
+                "example": 75
+              },
+              "influence": {
+                "type": "number",
+                "example": 70
+              },
+              "resilience": {
+                "type": "number",
+                "example": 85
+              },
+              "businessInsight": {
+                "type": "number",
+                "example": 78
+              },
+              "achievementMotivation": {
+                "type": "number",
+                "example": 72
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

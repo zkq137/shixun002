@@ -1,0 +1,19 @@
+# 适用于 Windows 上通过 Docker 运行 Dify 的开发环境。
+# 将本文件复制到 Dify 的 docker 目录，并命名为 docker-compose.override.yml。
+# 192.168.64.1 是本机 WSL/Docker 的主机网关；换电脑后请用容器内测试结果替换。
+services:
+  api:
+    extra_hosts:
+      - "host.docker.internal:192.168.64.1"
+
+  api_websocket:
+    extra_hosts:
+      - "host.docker.internal:192.168.64.1"
+
+  worker:
+    extra_hosts:
+      - "host.docker.internal:192.168.64.1"
+
+  ssrf_proxy:
+    extra_hosts:
+      - "host.docker.internal:192.168.64.1"

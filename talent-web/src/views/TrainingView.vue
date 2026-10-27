@@ -133,6 +133,8 @@ onMounted(() => {
       </el-row>
     </el-card>
 
-    <el-empty v-else description="先在上方选一个员工" />
+    <el-card v-else shadow="never" style="margin-top: 16px">
+      <el-empty description="选择一名员工，查看岗位必修与已完成培训之间的差距" :image-size="96" />
+    </el-card>
   </div>
 </template>

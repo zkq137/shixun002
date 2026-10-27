@@ -1,0 +1,857 @@
+app:
+  description: 智能操作员工档案、技能树、历年绩效与潜力评估
+  icon: 🤖
+  icon_background: '#E8F2FF'
+  mode: advanced-chat
+  name: 员工档案智能助手
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - name: base_url
+    value: http://host.docker.internal:9090
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .xlsx
+      - .xls
+      allowed_file_types:
+      - document
+      allowed_file_upload_methods:
+      - local_file
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      number_limits: 1
+    opening_statement: 你好，我是员工档案智能助手。可以帮你查询/新增/修改员工、管理技能树、录入绩效与潜力、生成趋势与对比。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 查询研发中心前 10 名员工
+    - 帮我新增一名员工
+    - 看一下员工 1 的绩效趋势
+    - 初始化潜力评估指标
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: start-source-planner-target
+      source: start
+      sourceHandle: source
+      target: planner
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: code
+      id: planner-source-parse-target
+      source: planner
+      sourceHandle: source
+      target: parse
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: if-else
+      id: parse-source-if_get-target
+      source: parse
+      sourceHandle: source
+      target: if_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_get-true-http_get-target
+      source: if_get
+      sourceHandle: 'true'
+      target: http_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: if_get-false-if_post-target
+      source: if_get
+      sourceHandle: 'false'
+      target: if_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: answer
+      id: http_get-source-answer_get-target
+      source: http_get
+      sourceHandle: source
+      target: answer_get
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_post-true-http_post-target
+      source: if_post
+      sourceHandle: 'true'
+      target: http_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: if_post-false-if_put-target
+      source: if_post
+      sourceHandle: 'false'
+      target: if_put
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: answer
+      id: http_post-source-answer_post-target
+      source: http_post
+      sourceHandle: source
+      target: answer_post
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_put-true-http_put-target
+      source: if_put
+      sourceHandle: 'true'
+      target: http_put
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: if_put-false-if_delete-target
+      source: if_put
+      sourceHandle: 'false'
+      target: if_delete
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: answer
+      id: http_put-source-answer_put-target
+      source: http_put
+      sourceHandle: source
+      target: answer_put
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: if_delete-true-http_delete-target
+      source: if_delete
+      sourceHandle: 'true'
+      target: http_delete
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: code
+      id: if_delete-false-noop-target
+      source: if_delete
+      sourceHandle: 'false'
+      target: noop
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: answer
+      id: http_delete-source-answer_delete-target
+      source: http_delete
+      sourceHandle: source
+      target: answer_delete
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: answer
+      id: noop-source-answer_noop-target
+      source: noop
+      sourceHandle: source
+      target: answer_noop
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 你的需求
+          max_length: 2000
+          options: []
+          required: true
+          type: text-input
+          variable: query
+      height: 92
+      id: start
+      position:
+        x: 30
+        y: 320
+      positionAbsolute:
+        x: 30
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: gpt-4o-mini
+          provider: openai
+        prompt_template:
+        - id: 8f0c6a52-1e4b-4f4b-9f0e-2a7b1c3d5e01
+          role: system
+          text: |
+            你是「智能企业人才梯队建设平台」的员工档案操作助手。
+            你的任务：把用户的自然语言需求转换成一个后端 API 调用计划。
+
+            只输出一个 JSON 对象，不要输出 Markdown、解释或多余文字。
+            JSON 格式：
+            {"method":"GET|POST|PUT|DELETE|NONE","path":"/api/...","body":{},"summary":"一句话说明要做什么"}
+
+            规则：
+            1. GET 的查询参数直接拼在 path 里，例如 /api/employee/page?pageNum=1&pageSize=10
+            2. POST/PUT 把请求体放在 body 对象里
+            3. 删除、批量删除属于危险操作：只有用户明确说“确认删除”时才输出 DELETE；
+               否则 method 用 NONE，并在 summary 里请用户确认
+            4. 信息不足时（缺员工ID、年份、工号等）method 用 NONE，并在 summary 里说明缺什么
+            5. Excel 导出：method 用 NONE，path 写导出地址，summary 说明这是下载链接
+            6. Excel 导入：method 用 NONE，summary 提示用户在员工档案页使用“导入 Excel”
+            7. 不要编造不存在的接口
+            8. 新增员工只强制要求工号、姓名、岗位ID；部门、职级、性别、年龄、
+               学历、手机号、办公方式等均可省略。系统已把岗位名称解析成岗位ID 时，
+               信息已经完整，必须直接调用 POST /api/employee，不要追问可选字段。
+
+            可用接口：
+            【员工档案】
+            GET  /api/employee/page?pageNum=1&pageSize=10&keyword=&department=&positionId=&talentTag=&warningLevel=&status=
+            GET  /api/employee/{id}
+            POST /api/employee  body: {empNo,name,positionId,department?,levelTier?,jobRank?,gender?,age?,managerEmpNo?,workMode?,tenureYears?,education?,phone?,status?}
+            PUT  /api/employee/{id}  body 同 POST
+            DELETE /api/employee/{id}
+            POST /api/employee/batch/delete  body: {ids:[1,2]}
+            PUT  /api/employee/batch/update  body: {ids:[1,2],department?,status?,workMode?,levelTier?,jobRank?}
+            GET  /api/employee/options/positions
+            GET  /api/employee/options/departments
+            GET  /api/employee/stats/department
+            GET  /api/employee/{id}/skills
+            PUT  /api/employee/{id}/skills  body: {skillIds:[1,2]}
+            GET  /api/employee/export?department=&keyword=
+            GET  /api/employee/import-template
+
+            【技能树】
+            GET  /api/skill/tree
+            GET  /api/skill/categories
+            GET  /api/skill/children?parentId=173
+            GET  /api/skill/search?keyword=Java
+            POST /api/skill  body: {skillName,parentId,description,status,sortOrder}
+            PUT  /api/skill/{id}  body 同 POST
+            DELETE /api/skill/{id}
+
+            【历年绩效】
+            GET  /api/performance/employees/{id}
+            GET  /api/performance/employees/{id}/trend
+            GET  /api/performance/employees/{id}/compare?yearA=2025&yearB=2026
+            POST /api/performance  body: {employeeId,perfYear,score,grade,dimensions:{业绩:4.5,协作:4.2}}
+            POST /api/performance/batch  body: {records:[{employeeId,perfYear,score,grade,dimensions:{}}]}
+            PUT  /api/performance/{id}  body 同 POST
+            DELETE /api/performance/{id}
+            GET  /api/performance/export?employeeId=1
+            GET  /api/performance/import-template
+
+            【潜力评估】
+            GET  /api/potential/model
+            POST /api/potential/model/init?force=false
+            GET  /api/potential/employees/{id}
+            POST /api/potential  body: {employeeId,indicators:{learningAgility:80,leadershipWillingness:75,influence:70,resilience:85,businessInsight:78,achievementMotivation:72}}
+            POST /api/potential/batch  body: {records:[{employeeId,indicators:{...}}]}
+        - id: 8f0c6a52-1e4b-4f4b-9f0e-2a7b1c3d5e02
+          role: user
+          text: |
+            用户需求：{{#start.query#}}
+        selected: false
+        title: 解析操作意图
+        type: llm
+        variables:
+        - value_selector:
+          - start
+          - query
+          variable: query
+        vision:
+          enabled: false
+      height: 98
+      id: planner
+      position:
+        x: 330
+        y: 320
+      positionAbsolute:
+        x: 330
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |
+          import json
+          import re
+
+          def main(plan: str) -> dict:
+              text = (plan or "").strip()
+              if text.startswith("```"):
+                  text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
+                  text = re.sub(r"\s*```$", "", text)
+              start = text.find("{")
+              end = text.rfind("}")
+              if start >= 0 and end > start:
+                  text = text[start:end + 1]
+              try:
+                  data = json.loads(text)
+              except Exception:
+                  data = {}
+              method = str(data.get("method", "NONE")).upper()
+              if method not in ("GET", "POST", "PUT", "DELETE", "NONE"):
+                  method = "NONE"
+              path = str(data.get("path", "") or "")
+              if path and not path.startswith("/"):
+                  path = "/" + path
+              body = data.get("body") or {}
+              if not isinstance(body, dict):
+                  body = {}
+              summary = str(data.get("summary", "") or "")
+              return {
+                  "method": method,
+                  "path": path,
+                  "body": json.dumps(body, ensure_ascii=False),
+                  "summary": summary,
+              }
+        code_language: python3
+        desc: ''
+        outputs:
+          method:
+            children: null
+            type: string
+          path:
+            children: null
+            type: string
+          body:
+            children: null
+            type: string
+          summary:
+            children: null
+            type: string
+        selected: false
+        title: 解析计划
+        type: code
+        variables:
+        - value_selector:
+          - planner
+          - text
+          variable: plan
+      height: 54
+      id: parse
+      position:
+        x: 630
+        y: 320
+      positionAbsolute:
+        x: 630
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-000000000001
+            value: GET
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 GET
+        type: if-else
+      height: 126
+      id: if_get
+      position:
+        x: 930
+        y: 320
+      positionAbsolute:
+        x: 930
+        y: 320
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: get
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 查询接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_get
+      position:
+        x: 1230
+        y: 120
+      positionAbsolute:
+        x: 1230
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-000000000002
+            value: POST
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 POST
+        type: if-else
+      height: 126
+      id: if_post
+      position:
+        x: 1230
+        y: 420
+      positionAbsolute:
+        x: 1230
+        y: 420
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: '{{#parse.body#}}'
+          type: json
+        desc: ''
+        headers: 'Content-Type:application/json'
+        method: post
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 新增接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_post
+      position:
+        x: 1530
+        y: 420
+      positionAbsolute:
+        x: 1530
+        y: 420
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-000000000003
+            value: PUT
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 PUT
+        type: if-else
+      height: 126
+      id: if_put
+      position:
+        x: 1530
+        y: 620
+      positionAbsolute:
+        x: 1530
+        y: 620
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: '{{#parse.body#}}'
+          type: json
+        desc: ''
+        headers: 'Content-Type:application/json'
+        method: put
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 修改接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_put
+      position:
+        x: 1830
+        y: 620
+      positionAbsolute:
+        x: 1830
+        y: 620
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b1e0f0c1-1a2b-4c3d-8e4f-000000000004
+            value: DELETE
+            varType: string
+            variable_selector:
+            - parse
+            - method
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 是否 DELETE
+        type: if-else
+      height: 126
+      id: if_delete
+      position:
+        x: 1830
+        y: 820
+      positionAbsolute:
+        x: 1830
+        y: 820
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: delete
+        params: ''
+        selected: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: 删除接口
+        type: http-request
+        url: '{{#env.base_url#}}{{#parse.path#}}'
+        variables: []
+      height: 110
+      id: http_delete
+      position:
+        x: 2130
+        y: 820
+      positionAbsolute:
+        x: 2130
+        y: 820
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: |
+          def main(path: str, summary: str) -> dict:
+              message = summary or "本次没有调用后端接口。"
+              if path:
+                  message = message + "\n\n链接：" + path
+              return {"message": message}
+        code_language: python3
+        desc: ''
+        outputs:
+          message:
+            children: null
+            type: string
+        selected: false
+        title: 生成提示
+        type: code
+        variables:
+        - value_selector:
+          - parse
+          - path
+          variable: path
+        - value_selector:
+          - parse
+          - summary
+          variable: summary
+      height: 54
+      id: noop
+      position:
+        x: 2130
+        y: 1000
+      positionAbsolute:
+        x: 2130
+        y: 1000
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '已执行查询：{{#parse.summary#}}
+
+
+          结果：
+
+          ```json
+
+          {{#http_get.body#}}
+
+          ```'
+        desc: ''
+        selected: false
+        title: 查询结果
+        type: answer
+        variables: []
+      height: 103
+      id: answer_get
+      position:
+        x: 1530
+        y: 120
+      positionAbsolute:
+        x: 1530
+        y: 120
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '已执行：{{#parse.summary#}}
+
+
+          返回：
+
+          ```json
+
+          {{#http_post.body#}}
+
+          ```'
+        desc: ''
+        selected: false
+        title: 新增结果
+        type: answer
+        variables: []
+      height: 103
+      id: answer_post
+      position:
+        x: 1830
+        y: 420
+      positionAbsolute:
+        x: 1830
+        y: 420
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '已执行：{{#parse.summary#}}
+
+
+          返回：
+
+          ```json
+
+          {{#http_put.body#}}
+
+          ```'
+        desc: ''
+        selected: false
+        title: 修改结果
+        type: answer
+        variables: []
+      height: 103
+      id: answer_put
+      position:
+        x: 2130
+        y: 620
+      positionAbsolute:
+        x: 2130
+        y: 620
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '已执行：{{#parse.summary#}}
+
+
+          返回：
+
+          ```json
+
+          {{#http_delete.body#}}
+
+          ```'
+        desc: ''
+        selected: false
+        title: 删除结果
+        type: answer
+        variables: []
+      height: 103
+      id: answer_delete
+      position:
+        x: 2430
+        y: 820
+      positionAbsolute:
+        x: 2430
+        y: 820
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#noop.message#}}'
+        desc: ''
+        selected: false
+        title: 操作提示
+        type: answer
+        variables: []
+      height: 103
+      id: answer_noop
+      position:
+        x: 2430
+        y: 1000
+      positionAbsolute:
+        x: 2430
+        y: 1000
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244

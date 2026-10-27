@@ -59,3 +59,8 @@ talent:
   perf-year: 2026
   dataset-version: dataset-v2
   model-version: v1.2
+  dify:
+    # 每个业务智能体使用独立 Dify 应用密钥，避免和员工档案智能体串用。
+    base-url: ${ANALYSIS_DIFY_BASE_URL:${DIFY_BASE_URL:}}
+    api-key: ${ANALYSIS_DIFY_API_KEY:}
+    default-user: ${ANALYSIS_DIFY_USER:web-analysis}

@@ -1,3 +1,31 @@
+/* ============================================================
+   全局设计系统
+   颜色、圆角、阴影统一在这里定义，页面只写业务布局
+   ============================================================ */
+:root {
+  --app-bg: #f4f6fb;
+  --app-surface: #ffffff;
+  --app-ink: #1b2540;
+  --app-ink-2: #475569;
+  --app-muted: #8590a3;
+  --app-line: #edf1f7;
+  --app-primary: #3b6ef6;
+  --app-radius: 14px;
+  --app-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px rgba(16, 24, 40, 0.05);
+
+  /* 覆盖 Element Plus 的默认观感 */
+  --el-color-primary: #3b6ef6;
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+  --el-text-color-primary: #1b2540;
+  --el-text-color-regular: #475569;
+  --el-border-color-light: #edf1f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 html,
 body,
 #app {
@@ -7,63 +35,271 @@ body,
 }
 
 body {
-  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
+  font-family: 'Inter', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', Arial, sans-serif;
-  background-color: #f5f7fa;
-  color: #303133;
+  font-size: 14px;
+  background-color: var(--app-bg);
+  color: var(--app-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ---------------- 页面标题 ---------------- */
 .page-title {
-  margin: 0 0 8px;
-  font-size: 18px;
-  font-weight: 600;
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+  color: #16213c;
 }
 
 .page-tip {
-  margin: 0 0 16px;
+  margin: 0 0 20px;
+  max-width: 920px;
   font-size: 13px;
-  color: #909399;
+  line-height: 1.7;
+  color: var(--app-muted);
 }
 
+.section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2a44;
+}
+
+/* ---------------- 工具栏 ---------------- */
 .search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.toolbar-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
 }
 
+.toolbar-row .toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+/* ---------------- 统计数字 ---------------- */
 .stat-value {
-  font-size: 26px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+  color: #16213c;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-  font-size: 13px;
-  color: #909399;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--app-muted);
 }
 
+/* ---------------- 分布列表 ---------------- */
 .dist-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.dist-row:last-child {
+  margin-bottom: 0;
 }
 
 .dist-name {
-  width: 120px;
+  width: 104px;
   flex: none;
-  font-size: 13px;
-  color: #606266;
-  text-align: right;
   overflow: hidden;
+  font-size: 12.5px;
+  color: var(--app-ink-2);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .dist-count {
-  width: 64px;
+  width: 74px;
   flex: none;
+  font-size: 12.5px;
+  color: var(--app-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Element Plus 统一观感
+   ============================================================ */
+.el-card {
+  border: 1px solid var(--app-line);
+  border-radius: var(--app-radius);
+  box-shadow: var(--app-shadow);
+  overflow: hidden;
+  background: var(--app-surface);
+}
+
+.el-card__header {
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--app-line);
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2a44;
+}
+
+.el-card__body {
+  padding: 18px 20px;
+}
+
+/* 表格：去掉竖线，只保留浅色横向分隔 */
+.el-table {
+  --el-table-border-color: transparent;
+  --el-table-header-bg-color: #f8fafc;
+  --el-table-row-hover-bg-color: #f6f9ff;
   font-size: 13px;
-  color: #909399;
+  color: #334155;
+}
+
+.el-table th.el-table__cell {
+  background: #f8fafc !important;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.el-table--border .el-table__cell {
+  border-right: none !important;
+}
+
+.el-table--border::after,
+.el-table--border::before,
+.el-table__inner-wrapper::before {
+  display: none;
+}
+
+.el-table .el-table__cell {
+  padding: 10px 0;
+}
+
+.el-table .cell {
+  line-height: 1.5;
+}
+
+/* 按钮 / 输入框 */
+.el-button {
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.el-button.is-link {
+  padding: 0 3px;
+  font-weight: 500;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #e6eaf2 inset;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--app-primary) inset;
+}
+
+.el-tag {
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+}
+
+/* 标签页 */
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background: var(--app-line);
+}
+
+.el-tabs__item {
+  height: 46px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.el-tabs__item.is-active {
+  color: var(--app-primary);
+  font-weight: 600;
+}
+
+.el-tabs__active-bar {
+  height: 3px;
+  border-radius: 3px;
+}
+
+/* 弹窗 / 抽屉 */
+.el-dialog {
+  border-radius: 16px;
+}
+
+.el-drawer {
+  border-radius: 16px 0 0 16px;
+}
+
+.el-dialog__header {
+  margin-right: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.el-dialog__body {
+  padding-top: 18px;
+}
+
+/* 分页 / 空状态 */
+.el-pagination {
+  --el-pagination-button-bg-color: transparent;
+  font-size: 13px;
+}
+
+.el-empty__image {
+  max-width: 120px;
+}
+
+.el-empty {
+  padding: 24px 0;
+}
+
+/* 选择提示条 */
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: #f0f5ff;
+  color: #2f5bd3;
+  font-size: 13px;
+}
+
+/* 小屏适配 */
+@media (max-width: 1280px) {
+  .dist-name {
+    width: 88px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
 }
