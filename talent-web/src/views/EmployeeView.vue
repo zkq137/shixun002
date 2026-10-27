@@ -6,12 +6,14 @@ import {
   Delete,
   Download,
   Edit,
+  MoreFilled,
   Plus,
   Refresh,
   Search,
   Upload,
   UploadFilled,
 } from '@element-plus/icons-vue'
+import ModuleAssistant from '@/components/ModuleAssistant.vue'
 import {
   IMPORT_TEMPLATE_URL,
   IMPORT_URL,
@@ -44,9 +46,16 @@ const total = ref(0)
 const departments = ref<string[]>([])
 const positions = ref<PositionOption[]>([])
 const selectedRows = ref<EmployeeRow[]>([])
+const tableRef = ref()
 
 const talentTags = ['核心骨干', '储备人才', '普通员工', '待优化']
 const warningLevels = ['低风险', '中风险', '高风险']
+const employeeAssistantPrompts = [
+  '查询研发中心前 10 名员工',
+  '新增员工：工号 E90001，姓名张三，岗位为市场经理',
+  '查看龙秀英的绩效趋势',
+  '查看员工龙秀英会的技能',
+]
 
 const query = reactive({
   pageNum: 1,
@@ -86,6 +95,19 @@ function resetQuery() {
 
 function onSelectionChange(selection: EmployeeRow[]) {
   selectedRows.value = selection
+}
+
+function clearSelection() {
+  tableRef.value?.clearSelection()
+  selectedRows.value = []
+}
+
+function handleRowCommand(command: unknown, row: EmployeeRow) {
+  if (command === 'skills') {
+    openSkills(row)
+  } else if (command === 'delete') {
+    remove(row)
+  }
 }
 
 /* ---------------- 批量操作 ---------------- */
@@ -374,90 +396,96 @@ onMounted(async () => {
     </p>
 
     <el-card shadow="never">
-      <div class="search-bar">
+      <div class="toolbar-row">
         <el-input
           v-model="query.keyword"
           placeholder="姓名或工号"
           clearable
-          style="width: 180px"
+          style="width: 200px"
           @keyup.enter="search"
         >
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
-        <el-select v-model="query.department" placeholder="部门" clearable style="width: 130px">
+        <el-select v-model="query.department" placeholder="部门" clearable style="width: 128px">
           <el-option v-for="item in departments" :key="item" :label="item" :value="item" />
         </el-select>
-        <el-select v-model="query.talentTag" placeholder="人才标签" clearable style="width: 130px">
+        <el-select v-model="query.talentTag" placeholder="人才标签" clearable style="width: 128px">
           <el-option v-for="item in talentTags" :key="item" :label="item" :value="item" />
         </el-select>
-        <el-select v-model="query.warningLevel" placeholder="流失风险" clearable style="width: 130px">
+        <el-select v-model="query.warningLevel" placeholder="流失风险" clearable style="width: 128px">
           <el-option v-for="item in warningLevels" :key="item" :label="item" :value="item" />
         </el-select>
         <el-button type="primary" :icon="Search" @click="search">查询</el-button>
         <el-button :icon="Refresh" @click="resetQuery">重置</el-button>
-      </div>
-
-      <el-divider style="margin: 16px 0" />
-
-      <div class="search-bar">
+        <div class="toolbar-spacer"></div>
         <el-button type="primary" :icon="Plus" @click="openCreate">新增员工</el-button>
-        <el-button :icon="Edit" :disabled="selectedRows.length === 0" @click="openBatch">
-          批量修改{{ selectedRows.length ? `（${selectedRows.length}）` : '' }}
-        </el-button>
-        <el-button
-          type="danger"
-          :icon="Delete"
-          :disabled="selectedRows.length === 0"
-          @click="batchRemove"
-        >
-          批量删除{{ selectedRows.length ? `（${selectedRows.length}）` : '' }}
-        </el-button>
-        <el-button :icon="Upload" @click="openImport">导入 Excel</el-button>
-        <el-button :icon="Download" @click="exportExcel">导出 Excel</el-button>
-        <el-button link type="primary" @click="downloadTemplate">下载导入模板</el-button>
+        <el-button :icon="Upload" @click="openImport">导入</el-button>
+        <el-button :icon="Download" @click="exportExcel">导出</el-button>
       </div>
     </el-card>
 
     <el-card shadow="never" style="margin-top: 16px">
+      <div v-if="selectedRows.length > 0" class="selection-bar">
+        <span>已选 {{ selectedRows.length }} 项</span>
+        <el-button size="small" :icon="Edit" @click="openBatch">批量修改</el-button>
+        <el-button size="small" type="danger" plain :icon="Delete" @click="batchRemove">
+          批量删除
+        </el-button>
+        <div style="flex: 1"></div>
+        <el-button size="small" link @click="clearSelection">取消选择</el-button>
+      </div>
+
       <el-table
+        ref="tableRef"
         v-loading="loading"
         :data="rows"
         stripe
-        border
         height="520"
         @selection-change="onSelectionChange"
       >
-        <el-table-column type="selection" width="46" />
-        <el-table-column prop="empNo" label="工号" width="120" />
-        <el-table-column prop="name" label="姓名" width="90" />
-        <el-table-column prop="gender" label="性别" width="70" />
-        <el-table-column prop="age" label="年龄" width="70" />
-        <el-table-column prop="department" label="部门" width="110" />
+        <el-table-column type="selection" width="42" />
+        <el-table-column prop="empNo" label="工号" width="110" />
+        <el-table-column prop="name" label="姓名" width="80" />
+        <el-table-column label="性别/年龄" width="92">
+          <template #default="{ row }">{{ row.gender ?? '-' }} / {{ row.age ?? '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="department" label="部门" width="100" />
         <el-table-column prop="positionName" label="岗位" min-width="140" />
-        <el-table-column prop="jobRank" label="职级" width="90" />
-        <el-table-column prop="tenureYears" label="司龄" width="80" />
-        <el-table-column prop="perfScore" label="绩效" width="80" />
-        <el-table-column prop="potentialLevel" label="潜力" width="130" />
-        <el-table-column label="流失风险" width="100">
+        <el-table-column prop="jobRank" label="职级" width="80" />
+        <el-table-column prop="tenureYears" label="司龄" width="70" />
+        <el-table-column prop="perfScore" label="绩效" width="70" />
+        <el-table-column prop="potentialLevel" label="潜力" width="115" />
+        <el-table-column label="流失风险" width="90">
           <template #default="{ row }">
             <el-tag :type="warningType(row.warningLevel)" effect="plain">
               {{ row.warningLevel ?? '-' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="人才标签" width="110">
+        <el-table-column label="人才标签" width="95">
           <template #default="{ row }">
             <el-tag :type="talentType(row.talentTag)" effect="light">
               {{ row.talentTag ?? '-' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetail(row)">详情</el-button>
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="primary" @click="openSkills(row)">技能</el-button>
-            <el-button link type="danger" @click="remove(row)">删除</el-button>
+            <span class="row-actions">
+              <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+              <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+              <el-dropdown trigger="click" @command="handleRowCommand($event, row)">
+                <el-button link type="primary" aria-label="更多操作">
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="skills">配置技能</el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </span>
           </template>
         </el-table-column>
       </el-table>
@@ -473,6 +501,13 @@ onMounted(async () => {
         @current-change="load"
       />
     </el-card>
+
+    <ModuleAssistant
+      module-key="employee"
+      title="员工档案智能助手"
+      :quick-prompts="employeeAssistantPrompts"
+      class="employee-assistant"
+    />
 
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" size="480px" :title="detail ? detail.name : '员工详情'">
@@ -599,6 +634,12 @@ onMounted(async () => {
       <el-alert type="info" :closable="false" style="margin-bottom: 12px">
         先「下载导入模板」，按模板填写。工号、姓名、岗位是必填；技能标签用顿号分隔，只认技能库里已有的技能。
       </el-alert>
+
+      <div style="margin-bottom: 12px">
+        <el-button link type="primary" :icon="Download" @click="downloadTemplate">
+          下载导入模板
+        </el-button>
+      </div>
 
       <el-upload
         drag
@@ -772,3 +813,20 @@ onMounted(async () => {
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.employee-assistant {
+  margin-top: 16px;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.row-actions :deep(.el-dropdown) {
+  margin-left: 2px;
+}
+</style>

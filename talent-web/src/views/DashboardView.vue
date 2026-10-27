@@ -6,6 +6,7 @@ import PipelineTab from './analysis/PipelineTab.vue'
 import FlowTab from './analysis/FlowTab.vue'
 import ModelTab from './analysis/ModelTab.vue'
 import ReportTab from './analysis/ReportTab.vue'
+import ModuleAssistant from '@/components/ModuleAssistant.vue'
 
 const route = useRoute()
 
@@ -13,6 +14,12 @@ const route = useRoute()
 const TABS = ['pipeline', 'flow', 'model', 'report', 'overview']
 const tabFromUrl = String(route.query.tab ?? '')
 const activeTab = ref(TABS.includes(tabFromUrl) ? tabFromUrl : 'pipeline')
+const analysisAssistantPrompts = [
+  '分析当前人才梯队健康度',
+  '按部门生成人数和平均绩效报表',
+  '查看人才流动趋势和主要风险',
+  '查看模型运行效果最好的版本',
+]
 </script>
 
 <template>
@@ -23,7 +30,7 @@ const activeTab = ref(TABS.includes(tabFromUrl) ? tabFromUrl : 'pipeline')
       并支持自定义报表与模型日志溯源。
     </p>
 
-    <el-tabs v-model="activeTab" type="border-card">
+    <el-tabs v-model="activeTab" class="analysis-tabs">
       <el-tab-pane label="梯队整体状态" name="pipeline">
         <PipelineTab v-if="activeTab === 'pipeline'" />
       </el-tab-pane>
@@ -40,5 +47,46 @@ const activeTab = ref(TABS.includes(tabFromUrl) ? tabFromUrl : 'pipeline')
         <OverviewTab v-if="activeTab === 'overview'" />
       </el-tab-pane>
     </el-tabs>
+
+    <ModuleAssistant
+      module-key="analysis"
+      title="数据分析智能体"
+      :quick-prompts="analysisAssistantPrompts"
+      status-endpoint="/analysis/ai/status"
+      chat-endpoint="/analysis/ai/chat"
+      class="analysis-assistant"
+    />
   </div>
 </template>
+
+<style scoped>
+.analysis-tabs :deep(.el-tabs__header) {
+  margin: 0 0 18px;
+  padding: 0 16px;
+  background: #fff;
+  border: 1px solid var(--app-line);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.analysis-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+
+.analysis-tabs :deep(.el-tabs__item) {
+  height: 48px;
+}
+
+.analysis-tabs :deep(.el-tabs__active-bar) {
+  height: 3px;
+  border-radius: 3px;
+}
+
+.analysis-tabs :deep(.el-tabs__content) {
+  overflow: visible;
+}
+
+.analysis-assistant {
+  margin-top: 22px;
+}
+</style>

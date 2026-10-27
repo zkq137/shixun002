@@ -6,6 +6,10 @@ import { createRouter, createWebHistory } from 'vue-router'
  */
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior(to) {
+    if (to.hash) return { el: to.hash, behavior: 'smooth', top: 16 }
+    return { top: 0 }
+  },
   routes: [
     { path: '/', redirect: '/dashboard' },
     {
@@ -43,6 +47,10 @@ const router = createRouter({
       name: 'promotion',
       component: () => import('@/views/PromotionView.vue'),
       meta: { title: '晋升决策' },
+    },
+    {
+      path: '/assistant',
+      redirect: { path: '/employee', hash: '#assistant-employee' },
     },
   ],
 })

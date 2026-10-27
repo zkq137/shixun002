@@ -30,6 +30,20 @@ spring:
           uri: lb://talent-employee-service
           predicates:
             - Path=/api/skill/**
+        # 历年绩效、潜力评估也归员工模块
+        - id: talent-performance
+          uri: lb://talent-employee-service
+          predicates:
+            - Path=/api/performance/**
+        - id: talent-potential
+          uri: lb://talent-employee-service
+          predicates:
+            - Path=/api/potential/**
+        # AI 助手（Dify 代理）也归员工模块
+        - id: talent-ai
+          uri: lb://talent-employee-service
+          predicates:
+            - Path=/api/ai/**
         - id: talent-planning
           uri: lb://talent-planning-service
           predicates:

@@ -305,17 +305,21 @@ onMounted(loadBase)
         <el-card shadow="never">
           <template #header>历史报表（可回看、可溯源）</template>
           <el-table :data="history" stripe border max-height="320">
-            <el-table-column prop="reportName" label="报表" min-width="140" />
-            <el-table-column prop="rowCount" label="行数" width="80" />
-            <el-table-column prop="dataVersion" label="数据版本" width="110" />
-            <el-table-column prop="modelVersion" label="模型版本" width="100" />
-            <el-table-column prop="createdAt" label="生成时间" width="150" />
-            <el-table-column label="操作" width="130" fixed="right">
+            <el-table-column prop="reportName" label="报表" min-width="120" />
+            <el-table-column prop="rowCount" label="行数" width="60" />
+            <el-table-column prop="dataVersion" label="数据版本" width="90" />
+            <el-table-column prop="modelVersion" label="模型版本" width="80" />
+            <el-table-column label="生成时间" width="110">
+              <template #default="{ row }">{{ (row.createdAt ?? '').slice(0, 10) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="100">
               <template #default="{ row }">
-                <el-button link type="primary" @click="viewHistory(row)">回看</el-button>
-                <el-button link type="danger" @click="removeHistory(row)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
+                <span class="row-actions">
+                  <el-button link type="primary" @click="viewHistory(row)">回看</el-button>
+                  <el-button link type="danger" @click="removeHistory(row)">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </span>
               </template>
             </el-table-column>
           </el-table>
@@ -324,3 +328,13 @@ onMounted(loadBase)
     </el-row>
   </div>
 </template>
+
+<style scoped>
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: visible;
+}
+</style>

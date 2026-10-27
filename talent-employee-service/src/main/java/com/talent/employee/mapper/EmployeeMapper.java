@@ -144,6 +144,30 @@ public interface EmployeeMapper extends BaseMapper<Employee> {
             """)
     int countByEmpNo(@Param("empNo") String empNo, @Param("excludeId") Long excludeId);
 
+    /**
+     * 找出自然语言问题中提到的员工姓名或工号。
+     * 只用于把姓名解析成稳定的员工 ID，实际业务仍按 ID 调用。
+     */
+    @Select("""
+            select id, emp_no, name
+            from emp_employee
+            where #{text} like concat('%', name, '%')
+               or #{text} like concat('%', emp_no, '%')
+            order by char_length(emp_no) desc, char_length(name) desc, id
+            limit 50
+            """)
+    List<Employee> selectReferencedEmployees(@Param("text") String text);
+
+    /** 找出自然语言问题中提到的岗位名称。 */
+    @Select("""
+            select id, position_name, department, level_tier
+            from position
+            where #{text} like concat('%', position_name, '%')
+            order by char_length(position_name) desc, id
+            limit 30
+            """)
+    List<PositionOptionVO> selectReferencedPositions(@Param("text") String text);
+
     /** 按岗位名称找岗位（导入 Excel 时用名称换 id） */
     @Select("""
             <script>

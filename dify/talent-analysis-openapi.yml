@@ -1,0 +1,450 @@
+openapi: 3.0.3
+info:
+  title: 智能企业人才梯队平台 - 数据分析与报告 API
+  version: 1.0.0
+  description: 人才盘点、流动趋势、自定义报表、模型效果与日志溯源接口。
+servers:
+- url: http://host.docker.internal:9090
+  description: Dify Docker 所在 Windows 主机
+- url: http://10.1.249.82:9090
+  description: 当前局域网地址
+- url: http://26.37.52.184:9090
+  description: Radmin VPN 地址
+- url: http://127.0.0.1:9090
+  description: 本机调试地址
+paths:
+  /api/analysis/dashboard:
+    get:
+      summary: 人才盘点看板
+      operationId: getDashboard
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 人才盘点看板
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/pipeline:
+    get:
+      summary: 人才梯队整体健康度
+      operationId: getPipeline
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 人才梯队整体健康度
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/flow-trend:
+    get:
+      summary: 人才历史流动趋势
+      operationId: getFlowTrend
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 人才历史流动趋势
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/report/options:
+    get:
+      summary: 查询报表维度和指标
+      operationId: getReportOptions
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询报表维度和指标
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/report/generate:
+    post:
+      summary: 生成自定义报表
+      operationId: generateReport
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 生成自定义报表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      requestBody: &id001
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - reportName
+              - dimensions
+              - metrics
+              properties:
+                reportName:
+                  type: string
+                dimensions:
+                  type: array
+                  items:
+                    type: string
+                metrics:
+                  type: array
+                  items:
+                    type: string
+                filters:
+                  type: object
+                  additionalProperties:
+                    type: string
+                save:
+                  type: boolean
+                  default: false
+  /api/analysis/report/from-template/{templateId}:
+    post:
+      summary: 按模板生成报表
+      operationId: generateReportFromTemplate
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 按模板生成报表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: templateId
+        in: path
+        required: true
+        schema:
+          type: integer
+  /api/analysis/report/history:
+    get:
+      summary: 查询历史报表
+      operationId: getReportHistory
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询历史报表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/report/templates:
+    get:
+      summary: 查询报表模板
+      operationId: getReportTemplates
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询报表模板
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+    post:
+      summary: 保存报表模板
+      operationId: saveReportTemplate
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 保存报表模板
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      requestBody: *id001
+  /api/analysis/report/templates/{id}:
+    delete:
+      summary: 删除报表模板
+      operationId: deleteReportTemplate
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 删除报表模板
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /api/analysis/report/{id}:
+    get:
+      summary: 查询报表详情与溯源信息
+      operationId: getReportDetail
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询报表详情与溯源信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      summary: 删除历史报表
+      operationId: deleteReport
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 删除历史报表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /api/analysis/model/effect:
+    get:
+      summary: 查询模型运行效果
+      operationId: getModelEffect
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询模型运行效果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/model/logs:
+    get:
+      summary: 分页查询模型日志
+      operationId: getModelLogs
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 分页查询模型日志
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: modelName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageNum
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: string
+  /api/analysis/model/logs/{id}:
+    get:
+      summary: 查询模型日志详情
+      operationId: getModelLogDetail
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询模型日志详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+  /api/analysis/model/names:
+    get:
+      summary: 查询模型名称列表
+      operationId: getModelNames
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询模型名称列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer

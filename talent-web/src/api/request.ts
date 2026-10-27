@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import type { ApiResult } from './types'
 
@@ -41,8 +42,8 @@ export function get<T>(url: string, params?: Record<string, unknown>): Promise<T
   return instance.get(url, { params }) as unknown as Promise<T>
 }
 
-export function post<T>(url: string, data?: unknown): Promise<T> {
-  return instance.post(url, data) as unknown as Promise<T>
+export function post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+  return instance.post(url, data, config) as unknown as Promise<T>
 }
 
 export function put<T>(url: string, data?: unknown): Promise<T> {

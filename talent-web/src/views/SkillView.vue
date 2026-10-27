@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Delete, Edit, Plus, Refresh, Search } from '@element-plus/icons-vue'
@@ -17,6 +17,7 @@ const tree = ref<SkillNode[]>([])
 const treeRef = ref()
 const filterText = ref('')
 const selected = ref<SkillNode | null>(null)
+const expandedKeys = ref<number[]>([])
 const children = ref<SkillItem[]>([])
 const childrenLoading = ref(false)
 const searchResult = ref<SkillItem[]>([])
@@ -195,7 +196,17 @@ async function remove(node: SkillItem | SkillNode) {
   await loadTree()
 }
 
-onMounted(() => loadTree(false))
+onMounted(async () => {
+  await loadTree(false)
+  if (tree.value.length > 0) {
+    const first = tree.value[0]
+    expandedKeys.value = [first.id]
+    selected.value = first
+    await loadChildren(first.id)
+    await nextTick()
+    treeRef.value?.setCurrentKey(first.id)
+  }
+})
 </script>
 
 <template>
@@ -237,20 +248,20 @@ onMounted(() => loadTree(false))
             :props="{ label: 'skillName', children: 'children' }"
             :filter-node-method="filterNode"
             :expand-on-click-node="false"
-            default-expand-all
+            :default-expanded-keys="expandedKeys"
             highlight-current
             style="max-height: 620px; overflow: auto"
             @node-click="onNodeClick"
           >
             <template #default="{ data }">
-              <span style="display: flex; align-items: center; gap: 6px; flex: 1">
-                <span>{{ data.skillName }}</span>
-                <el-tag v-if="data.level === 1" size="small" type="info">
-                  {{ data.children.length }}
-                </el-tag>
-                <el-tag v-else size="small" effect="plain">
-                  {{ data.employeeCount ?? 0 }} 人 / {{ data.positionCount ?? 0 }} 岗
-                </el-tag>
+              <span class="tree-node">
+                <span class="tree-label">{{ data.skillName }}</span>
+                <span v-if="data.level === 1" class="tree-count">
+                  {{ data.children.length }} 项
+                </span>
+                <span v-else class="tree-count">
+                  {{ data.employeeCount ?? 0 }} 人 · {{ data.positionCount ?? 0 }} 岗
+                </span>
               </span>
             </template>
           </el-tree>
@@ -292,9 +303,8 @@ onMounted(() => loadTree(false))
             </div>
           </template>
 
-          <el-table v-loading="childrenLoading" :data="children" stripe border height="560">
+          <el-table v-loading="childrenLoading" :data="children" stripe height="560">
             <el-table-column prop="skillName" label="技能名称" min-width="160" />
-            <el-table-column prop="description" label="说明" min-width="160" />
             <el-table-column prop="employeeCount" label="多少员工会" width="120" />
             <el-table-column prop="positionCount" label="多少岗位要求" width="130" />
             <el-table-column label="状态" width="90">
@@ -366,3 +376,47 @@ onMounted(() => loadTree(false))
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding-right: 6px;
+  font-size: 13px;
+}
+
+.tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-count {
+  flex: none;
+  color: #98a2b3;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+:deep(.el-tree-node__content) {
+  height: 34px;
+  margin: 1px 0;
+  border-radius: 8px;
+}
+
+:deep(.el-tree-node__content:hover) {
+  background: #f5f8ff;
+}
+
+:deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background: #eef3ff;
+  color: #2f5bd3;
+}
+
+:deep(.el-tree-node__children .el-tree-node__content) {
+  height: 30px;
+}
+</style>

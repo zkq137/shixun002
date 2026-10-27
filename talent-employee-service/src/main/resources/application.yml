@@ -58,3 +58,10 @@ logging:
 feign:
   sentinel:
     enabled: true
+
+# Dify 智能体（API Key 只放服务端，不要写进前端）
+talent:
+  dify:
+    base-url: ${DIFY_BASE_URL:}
+    api-key: ${DIFY_API_KEY:}
+    default-user: ${DIFY_USER:web-user}
