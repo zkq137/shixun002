@@ -416,6 +416,34 @@ export interface FlowTrendData {
   avgAnnualJoin?: number | null
 }
 
+export interface FlowForecastPoint {
+  month: string
+  predictedValue: number
+  lowerBound: number
+  upperBound: number
+}
+
+export interface FlowForecastSeries {
+  type: 'inflow' | 'outflow' | 'promotion'
+  name: string
+  method: string
+  confidence: string
+  totalPredicted: number
+  points: FlowForecastPoint[]
+}
+
+export interface FlowForecastData {
+  runCode: string
+  horizonMonths: number
+  modelVersion: string
+  generatedAt: string
+  status: string
+  source: string
+  metrics: Record<string, unknown>
+  notes: string[]
+  series: FlowForecastSeries[]
+}
+
 /** 单个模型的效果汇总 */
 export interface ModelSummary {
   modelName: string
@@ -460,6 +488,54 @@ export interface ModelLogItem {
   params?: string | null
   datasetVersion?: string | null
   remark?: string | null
+}
+
+/** 一个已训练并持久化的可部署模型 */
+export interface ModelArtifact {
+  id: number
+  modelCode: string
+  modelName: string
+  modelType: string
+  version: string
+  features: string[]
+  metrics: Record<string, number | string>
+  sampleCount: number
+  positiveCount: number
+  datasetVersion?: string | null
+  trainTime: string
+}
+
+/** 模型训练结果 */
+export interface ModelTrainResult extends ModelArtifact {
+  status: string
+  trainDurationMs: number
+  message: string
+}
+
+/** 单个员工的模型预测 */
+export interface ModelPrediction {
+  modelCode: string
+  modelName: string
+  modelVersion: string
+  employeeId: number
+  employeeName: string
+  score: number
+  scorePercent: number
+  resultLabel: string
+  explanation: string
+  topFeatures: Record<string, number>
+}
+
+export interface PositionRecommendation {
+  employeeId: number
+  employeeName: string
+  modelVersion: string
+  recommendations: Array<{
+    positionId: number
+    positionName: string
+    department: string
+    score: number
+  }>
 }
 
 /** 自定义报表可选维度/指标 */
