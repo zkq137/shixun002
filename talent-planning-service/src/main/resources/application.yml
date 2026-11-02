@@ -59,3 +59,10 @@ logging:
 feign:
   sentinel:
     enabled: true
+
+# Dify 网页版只由规划服务调用，API Key 不下发到浏览器。
+talent:
+  dify:
+    base-url: ${PLANNING_DIFY_BASE_URL:https://api.dify.ai}
+    api-key: ${PLANNING_DIFY_API_KEY:}
+    default-user: ${PLANNING_DIFY_USER:web-planning}
