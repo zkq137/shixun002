@@ -12,7 +12,7 @@ public class SuccessionCandidateVO {
     private String employeeName;
     private String department;
     private String currentPosition;
-    private Integer workYears;
+    private BigDecimal workYears;
     private BigDecimal matchScore;
     private BigDecimal skillScore;
     private BigDecimal performanceScore;

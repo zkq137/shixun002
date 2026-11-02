@@ -48,7 +48,8 @@ class PlanningServiceImplTest {
 
     @Test
     void rejectsInvalidCandidateLimitBeforeQueryingCandidates() {
-        when(positionMapper.selectById(1L)).thenReturn(position());
+        useOldPositionSchema();
+        when(positionMapper.selectByIdWithPositionLevel(1L)).thenReturn(position());
 
         BusinessException error = assertThrows(BusinessException.class, () -> service.succession(1L, 101));
 
@@ -58,7 +59,8 @@ class PlanningServiceImplTest {
 
     @Test
     void returnsNotFoundForMissingPosition() {
-        when(positionMapper.selectById(99L)).thenReturn(null);
+        useOldPositionSchema();
+        when(positionMapper.selectByIdWithPositionLevel(99L)).thenReturn(null);
 
         BusinessException error = assertThrows(BusinessException.class, () -> service.positionDetail(99L));
 
@@ -67,7 +69,8 @@ class PlanningServiceImplTest {
 
     @Test
     void refreshReplacesSnapshotAndStoresScoreBreakdown() {
-        when(positionMapper.selectById(1L)).thenReturn(position());
+        useOldPositionSchema();
+        when(positionMapper.selectByIdWithPositionLevel(1L)).thenReturn(position());
         when(queryMapper.columnExists("emp_employee", "position_id")).thenReturn(0);
         CandidateSourceVO source = new CandidateSourceVO();
         source.setEmployeeId(7L);
@@ -76,9 +79,10 @@ class PlanningServiceImplTest {
         source.setMatchedSkillCount(1);
         source.setPerformanceScore(new BigDecimal("80"));
         source.setPotentialScore(new BigDecimal("80"));
-        source.setWorkYears(5);
+        source.setWorkYears(new BigDecimal("5"));
         when(queryMapper.candidatesByPositionName(1L)).thenReturn(List.of(source));
-        when(queryMapper.missingSkills(1L, 7L)).thenReturn(List.of());
+        when(queryMapper.columnExists("pos_skill_require", "require_type")).thenReturn(0);
+        when(queryMapper.missingSkillsByRequirementType(1L, 7L)).thenReturn(List.of());
 
         var result = service.refreshSuccession(1L);
 
@@ -90,6 +94,20 @@ class PlanningServiceImplTest {
         assertEquals(new BigDecimal("87.00"), captor.getValue().getMatchScore());
         assertEquals("READY_NOW", captor.getValue().getReadiness());
         assertNotNull(captor.getValue().getCalculatedAt());
+    }
+
+    @Test
+    void readsPositionsFromNewDatasetSchema() {
+        when(queryMapper.columnExists("position", "level_tier")).thenReturn(1);
+        Position position = position();
+        position.setPositionLevel("L3");
+        when(positionMapper.selectListWithLevelTier(null, null)).thenReturn(List.of(position));
+
+        var result = service.positions(null, null);
+
+        assertEquals(1, result.size());
+        assertEquals("L3", result.get(0).getPositionLevel());
+        verify(positionMapper, never()).selectListWithPositionLevel(any(), any());
     }
 
     @Test
@@ -132,5 +150,10 @@ class PlanningServiceImplTest {
         position.setPositionName("技术经理");
         position.setIsKey(1);
         return position;
+    }
+
+
+    private void useOldPositionSchema() {
+        when(queryMapper.columnExists("position", "level_tier")).thenReturn(0);
     }
 }

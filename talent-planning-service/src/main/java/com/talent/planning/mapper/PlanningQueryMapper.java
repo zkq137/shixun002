@@ -24,7 +24,13 @@ public interface PlanningQueryMapper {
     @Select("SELECT s.skill_name FROM pos_skill_require req JOIN skill s ON s.id = req.skill_id "
             + "LEFT JOIN emp_skill own ON own.employee_id = #{employeeId} AND own.skill_id = req.skill_id "
             + "WHERE req.position_id = #{positionId} AND req.require_type = '核心' AND own.id IS NULL ORDER BY s.skill_name")
-    List<String> missingSkills(@Param("positionId") Long positionId, @Param("employeeId") Long employeeId);
+    List<String> missingSkillsByRequireType(@Param("positionId") Long positionId, @Param("employeeId") Long employeeId);
+
+    @Select("SELECT s.skill_name FROM pos_skill_require req JOIN skill s ON s.id = req.skill_id "
+            + "LEFT JOIN emp_skill own ON own.employee_id = #{employeeId} AND own.skill_id = req.skill_id "
+            + "WHERE req.position_id = #{positionId} AND COALESCE(req.requirement_type, '核心') = '核心' "
+            + "AND own.id IS NULL ORDER BY s.skill_name")
+    List<String> missingSkillsByRequirementType(@Param("positionId") Long positionId, @Param("employeeId") Long employeeId);
 
     @Select("SELECT req.skill_id, s.skill_name, req.require_type AS requirement_type, NULL AS required_level, "
             + "(SELECT COUNT(*) FROM emp_employee WHERE status = '在职') AS required_count, "
@@ -33,7 +39,16 @@ public interface PlanningQueryMapper {
             + "LEFT JOIN emp_skill es ON es.skill_id = req.skill_id LEFT JOIN emp_employee e ON e.id = es.employee_id "
             + "WHERE req.position_id = #{positionId} GROUP BY req.skill_id, s.skill_name, req.require_type "
             + "ORDER BY req.require_type, s.skill_name")
-    List<SkillCoverageVO> skillCoverage(@Param("positionId") Long positionId);
+    List<SkillCoverageVO> skillCoverageByRequireType(@Param("positionId") Long positionId);
+
+    @Select("SELECT req.skill_id, s.skill_name, req.requirement_type, req.required_level, "
+            + "(SELECT COUNT(*) FROM emp_employee WHERE status = '在职') AS required_count, "
+            + "COUNT(DISTINCT CASE WHEN e.status = '在职' THEN es.employee_id END) AS qualified_count "
+            + "FROM pos_skill_require req JOIN skill s ON s.id = req.skill_id "
+            + "LEFT JOIN emp_skill es ON es.skill_id = req.skill_id LEFT JOIN emp_employee e ON e.id = es.employee_id "
+            + "WHERE req.position_id = #{positionId} GROUP BY req.skill_id, s.skill_name, req.requirement_type, req.required_level "
+            + "ORDER BY req.requirement_type, s.skill_name")
+    List<SkillCoverageVO> skillCoverageByRequirementType(@Param("positionId") Long positionId);
 
     @Select("SELECT COUNT(*) FROM emp_employee WHERE status = '在职' AND position_id = #{positionId}")
     int incumbentCountByPositionId(@Param("positionId") Long positionId);
@@ -75,17 +90,21 @@ public interface PlanningQueryMapper {
             + RISK_COLUMNS + " FROM resign_warning_record r JOIN emp_employee e ON e.id = r.employee_id WHERE r.id = #{id}")
     RiskEmployeeVO riskDetailByPositionName(@Param("id") Long id);
 
-    String CANDIDATE_SCORE_COLUMNS = "e.tenure_years AS work_years, "
+    String CANDIDATE_SCORE_COLUMNS_NEW = "e.tenure_years AS work_years, "
+            + "(SELECT ep.score FROM emp_performance ep WHERE ep.employee_id=e.id ORDER BY ep.perf_year DESC,ep.id DESC LIMIT 1) AS performance_score, "
+            + "(SELECT po.total_score FROM emp_potential po WHERE po.employee_id=e.id ORDER BY po.updated_at DESC,po.id DESC LIMIT 1) AS potential_score, "
+            + "COUNT(DISTINCT own.skill_id) AS matched_skill_count, COUNT(DISTINCT req.skill_id) AS required_skill_count ";
+    String CANDIDATE_SCORE_COLUMNS_OLD = "e.work_years AS work_years, "
             + "(SELECT ep.score FROM emp_performance ep WHERE ep.employee_id=e.id ORDER BY ep.perf_year DESC,ep.id DESC LIMIT 1) AS performance_score, "
             + "(SELECT po.total_score FROM emp_potential po WHERE po.employee_id=e.id ORDER BY po.updated_at DESC,po.id DESC LIMIT 1) AS potential_score, "
             + "COUNT(DISTINCT own.skill_id) AS matched_skill_count, COUNT(DISTINCT req.skill_id) AS required_skill_count ";
     String CANDIDATE_FROM = "FROM position p CROSS JOIN emp_employee e LEFT JOIN pos_skill_require req ON req.position_id=p.id "
             + "LEFT JOIN emp_skill own ON own.employee_id=e.id AND own.skill_id=req.skill_id ";
     String CANDIDATE_BY_ID = "<script>SELECT e.id AS employee_id,e.emp_no,e.name AS employee_name,e.department,"
-            + "current_pos.position_name AS current_position," + CANDIDATE_SCORE_COLUMNS + CANDIDATE_FROM
+            + "current_pos.position_name AS current_position," + CANDIDATE_SCORE_COLUMNS_NEW + CANDIDATE_FROM
             + "LEFT JOIN position current_pos ON current_pos.id=e.position_id WHERE p.id=#{positionId} AND e.status='在职'";
     String CANDIDATE_BY_NAME = "<script>SELECT e.id AS employee_id,e.emp_no,e.name AS employee_name,e.department,"
-            + "e.position AS current_position," + CANDIDATE_SCORE_COLUMNS + CANDIDATE_FROM
+            + "e.position AS current_position," + CANDIDATE_SCORE_COLUMNS_OLD + CANDIDATE_FROM
             + "WHERE p.id=#{positionId} AND e.status='在职'";
     String RISK_COLUMNS = "r.risk_score,r.warning_level,r.warning_time,r.handle_status,r.handler,r.handle_remark,r.handled_at";
     String RISK_BY_ID = "<script>SELECT r.id,r.employee_id,e.emp_no,e.name AS employee_name,e.department,p.position_name AS current_position,"

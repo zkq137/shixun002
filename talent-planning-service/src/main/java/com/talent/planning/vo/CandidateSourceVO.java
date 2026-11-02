@@ -11,7 +11,7 @@ public class CandidateSourceVO {
     private String employeeName;
     private String department;
     private String currentPosition;
-    private Integer workYears;
+    private BigDecimal workYears;
     private BigDecimal performanceScore;
     private BigDecimal potentialScore;
     private Integer matchedSkillCount;

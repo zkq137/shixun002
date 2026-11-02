@@ -33,13 +33,13 @@ public class PlanningServiceImpl implements PlanningService {
     private final PlanningQueryMapper queryMapper;
     private final SuccessionScoreCalculator scoreCalculator;
     private volatile Boolean employeeHasPositionId;
+    private volatile Boolean positionHasLevelTier;
+    private volatile Boolean skillRequirementHasRequireType;
 
     @Override
     public List<PositionVO> positions(String keyword, Boolean key) {
-        return positionMapper.selectList(new LambdaQueryWrapper<Position>()
-                .like(StringUtils.hasText(keyword), Position::getPositionName, keyword)
-                .eq(key != null, Position::getIsKey, Boolean.TRUE.equals(key) ? 1 : 0)
-                .orderByDesc(Position::getIsKey).orderByAsc(Position::getPositionLevel).orderByAsc(Position::getId))
+        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        return compatiblePositions(normalizedKeyword, key)
                 .stream().map(p -> toPositionVO(p, false)).toList();
     }
 
@@ -48,14 +48,12 @@ public class PlanningServiceImpl implements PlanningService {
     @Override
     public void updateKeyPosition(Long id, boolean key) {
         Position position = requirePosition(id);
-        position.setIsKey(key ? 1 : 0);
-        positionMapper.updateById(position);
+        positionMapper.updateKeyFlag(position.getId(), key ? 1 : 0);
     }
 
     @Override
     public List<PositionVO> keyPositions() {
-        return positionMapper.selectList(new LambdaQueryWrapper<Position>().eq(Position::getIsKey, 1)
-                .orderByAsc(Position::getPositionLevel).orderByAsc(Position::getId))
+        return compatiblePositions(null, true)
                 .stream().map(p -> toPositionVO(p, false)).toList();
     }
 
@@ -90,7 +88,7 @@ public class PlanningServiceImpl implements PlanningService {
     @Override
     public List<SkillCoverageVO> skillCoverage(Long positionId) {
         requirePosition(positionId);
-        List<SkillCoverageVO> result = queryMapper.skillCoverage(positionId);
+        List<SkillCoverageVO> result = compatibleSkillCoverage(positionId);
         result.forEach(item -> {
             int required = value(item.getRequiredCount()), qualified = value(item.getQualifiedCount());
             item.setGapCount(Math.max(0, required - qualified));
@@ -117,7 +115,7 @@ public class PlanningServiceImpl implements PlanningService {
     @Transactional
     public List<TalentPoolVO> refreshTalentPools() {
         Map<String, List<Long>> byLevel = new LinkedHashMap<>();
-        for (Position p : positionMapper.selectList(new LambdaQueryWrapper<Position>().eq(Position::getIsKey, 1))) {
+        for (Position p : compatiblePositions(null, true)) {
             String level = StringUtils.hasText(p.getPositionLevel()) ? p.getPositionLevel() : "未分级";
             byLevel.computeIfAbsent(level, ignored -> new ArrayList<>()).add(p.getId());
         }
@@ -181,7 +179,7 @@ public class PlanningServiceImpl implements PlanningService {
     @Transactional
     public List<PositionRiskVO> evaluatePositionRisks() {
         positionRiskMapper.delete(null);
-        for (Position position : positionMapper.selectList(null)) {
+        for (Position position : compatiblePositions(null, null)) {
             int incumbents = incumbentCount(position.getId()), highRisk = highRiskCount(position.getId());
             List<SuccessionCandidate> all = candidateMapper.selectList(new LambdaQueryWrapper<SuccessionCandidate>()
                     .eq(SuccessionCandidate::getPositionId, position.getId()));
@@ -212,8 +210,9 @@ public class PlanningServiceImpl implements PlanningService {
 
     @Override
     public PlanningDashboardVO dashboard() {
-        long positions = positionMapper.selectCount(null);
-        List<Position> keys = positionMapper.selectList(new LambdaQueryWrapper<Position>().eq(Position::getIsKey, 1));
+        List<Position> allPositions = compatiblePositions(null, null);
+        long positions = allPositions.size();
+        List<Position> keys = allPositions.stream().filter(p -> value(p.getIsKey()) == 1).toList();
         long covered = keys.stream().filter(p -> candidateMapper.selectCount(new LambdaQueryWrapper<SuccessionCandidate>()
                 .eq(SuccessionCandidate::getPositionId, p.getId()).ne(SuccessionCandidate::getReadiness, "NOT_READY")) > 0).count();
         Map<String, Long> distribution = new LinkedHashMap<>();
@@ -233,7 +232,7 @@ public class PlanningServiceImpl implements PlanningService {
     private List<SuccessionCandidateVO> calculateCandidates(Long positionId) {
         List<CandidateSourceVO> sources = hasEmployeePositionId() ? queryMapper.candidatesByPositionId(positionId)
                 : queryMapper.candidatesByPositionName(positionId);
-        return sources.stream().map(s -> scoreCalculator.calculate(s, queryMapper.missingSkills(positionId, s.getEmployeeId())))
+        return sources.stream().map(s -> scoreCalculator.calculate(s, compatibleMissingSkills(positionId, s.getEmployeeId())))
                 .sorted((a, b) -> b.getMatchScore().compareTo(a.getMatchScore())).toList();
     }
 
@@ -250,7 +249,7 @@ public class PlanningServiceImpl implements PlanningService {
     }
 
     private PositionRiskVO toPositionRiskVO(PositionRisk r) {
-        Position p = positionMapper.selectById(r.getPositionId()); PositionRiskVO vo = new PositionRiskVO();
+        Position p = findPosition(r.getPositionId()); PositionRiskVO vo = new PositionRiskVO();
         vo.setId(r.getId()); vo.setPositionId(r.getPositionId()); vo.setPositionName(p == null ? null : p.getPositionName());
         vo.setPositionLevel(p == null ? null : p.getPositionLevel()); vo.setKey(p != null && value(p.getIsKey()) == 1);
         vo.setRiskLevel(r.getRiskLevel()); vo.setRiskDescription(r.getRiskDesc()); vo.setRiskScope(r.getRiskScope());
@@ -273,10 +272,41 @@ public class PlanningServiceImpl implements PlanningService {
         if (employeeHasPositionId == null) synchronized (this) { if (employeeHasPositionId == null) employeeHasPositionId = queryMapper.columnExists("emp_employee", "position_id") > 0; }
         return employeeHasPositionId;
     }
+    private boolean hasPositionLevelTier() {
+        if (positionHasLevelTier == null) synchronized (this) {
+            if (positionHasLevelTier == null) positionHasLevelTier = queryMapper.columnExists("position", "level_tier") > 0;
+        }
+        return positionHasLevelTier;
+    }
+    private List<Position> compatiblePositions(String keyword, Boolean key) {
+        return hasPositionLevelTier() ? positionMapper.selectListWithLevelTier(keyword, key)
+                : positionMapper.selectListWithPositionLevel(keyword, key);
+    }
+    private Position findPosition(Long id) {
+        if (id == null) return null;
+        return hasPositionLevelTier() ? positionMapper.selectByIdWithLevelTier(id)
+                : positionMapper.selectByIdWithPositionLevel(id);
+    }
+    private boolean hasSkillRequireType() {
+        if (skillRequirementHasRequireType == null) synchronized (this) {
+            if (skillRequirementHasRequireType == null) {
+                skillRequirementHasRequireType = queryMapper.columnExists("pos_skill_require", "require_type") > 0;
+            }
+        }
+        return skillRequirementHasRequireType;
+    }
+    private List<String> compatibleMissingSkills(Long positionId, Long employeeId) {
+        return hasSkillRequireType() ? queryMapper.missingSkillsByRequireType(positionId, employeeId)
+                : queryMapper.missingSkillsByRequirementType(positionId, employeeId);
+    }
+    private List<SkillCoverageVO> compatibleSkillCoverage(Long positionId) {
+        return hasSkillRequireType() ? queryMapper.skillCoverageByRequireType(positionId)
+                : queryMapper.skillCoverageByRequirementType(positionId);
+    }
     private int incumbentCount(Long id) { return hasEmployeePositionId() ? queryMapper.incumbentCountByPositionId(id) : queryMapper.incumbentCountByPositionName(id); }
     private int highRiskCount(Long id) { return hasEmployeePositionId() ? queryMapper.highRiskByPositionId(id) : queryMapper.highRiskByPositionName(id); }
     private int distinctEmployees(List<SuccessionCandidate> list, String status) { return (int) list.stream().filter(c -> status.equals(c.getReadiness())).map(SuccessionCandidate::getEmployeeId).distinct().count(); }
-    private Position requirePosition(Long id) { Position p = id == null ? null : positionMapper.selectById(id); if (p == null) throw notFound("岗位不存在"); return p; }
+    private Position requirePosition(Long id) { Position p = findPosition(id); if (p == null) throw notFound("岗位不存在"); return p; }
     private void validatePage(long page, long size) { if (page < 1 || page > 1_000_000 || size < 1 || size > 100) throw validation("分页参数不合法，pageNum 在 1 到 1000000 之间且 pageSize 在 1 到 100 之间"); }
     private BigDecimal percent(long a, long b) { return b == 0 ? BigDecimal.ZERO : BigDecimal.valueOf(a).multiply(BigDecimal.valueOf(100)).divide(BigDecimal.valueOf(b), 2, RoundingMode.HALF_UP); }
     private int value(Integer n) { return n == null ? 0 : n; }

@@ -37,6 +37,16 @@ class SuccessionScoreCalculatorTest {
     }
 
     @Test
+    void preservesDecimalTenureWhenCalculatingExperience() {
+        CandidateSourceVO source = source(0, 0, null, null, 3.5);
+
+        SuccessionCandidateVO result = calculator.calculate(source, List.of());
+
+        assertEquals(new BigDecimal("35.00"), result.getExperienceScore());
+        assertEquals(new BigDecimal("3.50"), result.getMatchScore());
+    }
+
+    @Test
     void usesZeroForMissingDataWithoutReweighting() {
         CandidateSourceVO source = source(0, 0, null, null, 4);
 
@@ -57,7 +67,7 @@ class SuccessionScoreCalculatorTest {
         assertEquals("NOT_READY", calculator.calculate(source(3, 5, "0", "0", 0), List.of()).getReadiness());
     }
 
-    private CandidateSourceVO source(int matched, int required, String performance, String potential, int years) {
+    private CandidateSourceVO source(int matched, int required, String performance, String potential, double years) {
         CandidateSourceVO source = new CandidateSourceVO();
         source.setEmployeeId(1L);
         source.setEmpNo("E001");
@@ -66,7 +76,7 @@ class SuccessionScoreCalculatorTest {
         source.setRequiredSkillCount(required);
         source.setPerformanceScore(performance == null ? null : new BigDecimal(performance));
         source.setPotentialScore(potential == null ? null : new BigDecimal(potential));
-        source.setWorkYears(years);
+        source.setWorkYears(BigDecimal.valueOf(years));
         return source;
     }
 }

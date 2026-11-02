@@ -4,13 +4,25 @@
 
 ## 首次初始化
 
-先导入根目录公共脚本，再执行本模块增量脚本。增量脚本可以重复执行：
+完整数据必须按以下顺序导入。`talent_dataset.sql` 会重建流失预警表，因此规划增量脚本必须最后执行；增量脚本可以重复执行：
 
 ```powershell
-Get-Content -Raw -Encoding UTF8 .\talent-planning-service\sql\planning_schema.sql |
-  & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" `
-    "--host=127.0.0.1" "--user=root" "--password=20050312" "--default-character-set=utf8mb4"
+$mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
+
+cmd /c "`"$mysql`" -uroot -p你的密码 --default-character-set=utf8mb4 < sql\talent_db.sql"
+cmd /c "`"$mysql`" -uroot -p你的密码 --default-character-set=utf8mb4 < sql\talent_dataset.sql"
+cmd /c "`"$mysql`" -uroot -p你的密码 --default-character-set=utf8mb4 < sql\talent_skill_tree.sql"
+cmd /c "`"$mysql`" -uroot -p你的密码 --default-character-set=utf8mb4 < sql\talent_analysis.sql"
+cmd /c "`"$mysql`" -uroot -p你的密码 --default-character-set=utf8mb4 < talent-planning-service\sql\planning_schema.sql"
 ```
+
+从旧的 3 人样例库切换到完整数据集时，再执行一次规划快照重置脚本，防止旧岗位和员工 ID 对应的快照混入新数据：
+
+```powershell
+cmd /c "`"$mysql`" -uroot -p你的密码 --default-character-set=utf8mb4 < talent-planning-service\sql\reset_planning_snapshots.sql"
+```
+
+服务同时兼容早期样例库的 `position_level/work_years` 和完整数据集的 `level_tier/tenure_years`，无需修改公共表结构。
 
 数据库密码也可通过环境变量覆盖：
 

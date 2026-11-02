@@ -19,8 +19,9 @@ public class SuccessionScoreCalculator {
                 .divide(BigDecimal.valueOf(source.getRequiredSkillCount()), 2, RoundingMode.HALF_UP);
         BigDecimal performance = normalizePerformance(source.getPerformanceScore());
         BigDecimal potential = clamp(source.getPotentialScore());
-        BigDecimal experience = BigDecimal.valueOf(Math.min(100,
-                Math.max(0, (source.getWorkYears() == null ? 0 : source.getWorkYears()) * 10L))).setScale(2);
+        BigDecimal workYears = source.getWorkYears() == null ? BigDecimal.ZERO : source.getWorkYears();
+        BigDecimal experience = workYears.max(BigDecimal.ZERO).multiply(BigDecimal.TEN)
+                .min(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
         BigDecimal total = skill.multiply(new BigDecimal("0.50"))
                 .add(performance.multiply(new BigDecimal("0.20")))
                 .add(potential.multiply(new BigDecimal("0.20")))
