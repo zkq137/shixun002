@@ -15,6 +15,7 @@ import com.talent.employee.service.EmployeeService;
 import com.talent.employee.vo.BatchResultVO;
 import com.talent.employee.vo.EmployeeDetailVO;
 import com.talent.employee.vo.EmployeeImportResultVO;
+import com.talent.employee.vo.EmployeeReferenceVO;
 import com.talent.employee.vo.EmployeeVO;
 import com.talent.employee.vo.PositionOptionVO;
 import com.talent.employee.vo.SkillVO;
@@ -68,6 +69,12 @@ public class EmployeeController {
     @GetMapping("/page")
     public Result<PageResult<EmployeeVO>> page(EmployeeQuery query) {
         return Result.success(employeeService.pageQuery(query));
+    }
+
+    /** 从自然语言中解析姓名或工号，供其他模块得到稳定的员工 ID */
+    @GetMapping("/referenced")
+    public Result<List<EmployeeReferenceVO>> referenced(@RequestParam("text") String text) {
+        return Result.success(employeeService.referencedEmployees(text));
     }
 
     /** 员工详情：基本信息 + 薪酬 + 技能 + 已完成培训 */

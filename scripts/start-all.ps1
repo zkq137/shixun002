@@ -73,6 +73,8 @@ Write-Host "  Maven = $Maven"
 
 # Windows 用户级环境变量不会注入已经打开的终端，这里主动补齐，
 # 从旧终端或 IDEA 重启服务时也能读取到服务端 Dify 配置。
+$sharedEnv = Join-Path $root '.shared-env.ps1'
+if (Test-Path $sharedEnv) { . $sharedEnv }
 if (-not $env:DIFY_BASE_URL) {
     $env:DIFY_BASE_URL = [Environment]::GetEnvironmentVariable('DIFY_BASE_URL', 'User')
 }
@@ -85,6 +87,12 @@ if (-not $env:ANALYSIS_DIFY_BASE_URL) {
 if (-not $env:ANALYSIS_DIFY_API_KEY) {
     $env:ANALYSIS_DIFY_API_KEY = [Environment]::GetEnvironmentVariable('ANALYSIS_DIFY_API_KEY', 'User')
 }
+if (-not $env:PROMOTION_DIFY_BASE_URL) {
+    $env:PROMOTION_DIFY_BASE_URL = [Environment]::GetEnvironmentVariable('PROMOTION_DIFY_BASE_URL', 'User')
+}
+if (-not $env:PROMOTION_DIFY_API_KEY) {
+    $env:PROMOTION_DIFY_API_KEY = [Environment]::GetEnvironmentVariable('PROMOTION_DIFY_API_KEY', 'User')
+}
 if ($env:DIFY_BASE_URL -and $env:DIFY_API_KEY) {
     Write-Host "  Dify = $env:DIFY_BASE_URL"
 } else {
@@ -94,6 +102,11 @@ if ($env:ANALYSIS_DIFY_BASE_URL -and $env:ANALYSIS_DIFY_API_KEY) {
     Write-Host "  Analysis Agent = $env:ANALYSIS_DIFY_BASE_URL"
 } else {
     Write-Host '  [警告] 数据分析智能体环境变量未配置' -ForegroundColor Yellow
+}
+if ($env:PROMOTION_DIFY_BASE_URL -and $env:PROMOTION_DIFY_API_KEY) {
+    Write-Host "  Promotion Agent = $env:PROMOTION_DIFY_BASE_URL"
+} else {
+    Write-Host '  [警告] 晋升决策智能体环境变量未配置' -ForegroundColor Yellow
 }
 
 if (Test-Port 3306) { Write-Host '  MySQL 3306 正常' }

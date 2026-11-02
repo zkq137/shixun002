@@ -1,10 +1,11 @@
-# Dify 员工档案智能体
+# Dify 智能体工作流
 
-这两个 YAML 用来在 Dify 里搭建「员工档案智能管理」智能体：
+下表中的 YAML 用于在 Dify 里搭建员工档案与晋升决策智能体：
 
 | 文件 | 用途 |
 |---|---|
 | `talent-employee-agent.yml` | Dify Chatflow（工作流）DSL，可直接导入 |
+| `talent-promotion-agent.yml` | Dify Chatflow（工作流）DSL，综合晋升候选池、梯队继任评估和技能体系数据 |
 | `talent-employee-openapi.yml` | 后端 API 的 OpenAPI 3.0 定义，可导入为 Dify 自定义工具 |
 
 数据分析与报告模块使用独立的 Dify 应用，配置方式见
@@ -58,19 +59,31 @@ curl http://127.0.0.1:9090/api/employee/page?pageNum=1&pageSize=1
 | Dify 用 Docker 部署（已配置主机映射） | `http://host.docker.internal:9090` |
 | 后端在另一台机器 | `http://后端IP:9090` |
 | 使用共享环境 | `http://10.1.249.82:9090` 或 Radmin `http://26.37.52.184:9090` |
+| Dify Cloud（`api.dify.ai`） | 公网可访问的 HTTPS 网关地址，不能填本机、Docker 或内网地址 |
 
 > Docker 里的 Dify 访问 `127.0.0.1` 指的是容器自己，不是你的电脑。
 
-如果使用 Docker 版 Dify 且容器无法解析 `host.docker.internal`，将
-`dify/docker-compose.override.example.yml` 复制为 Dify 安装目录下的
-`docker/docker-compose.override.yml`。同时在 Dify 的 `docker/.env` 中加入：
+> Dify Cloud 的工作流 HTTP 请求由云端发起，因此
+> `127.0.0.1`、`host.docker.internal`、局域网 IP 和 Radmin IP 都不可达。
+> 使用 Cloudflare Tunnel、ngrok 或公网反向代理把网关 `9090` 暴露成 HTTPS 地址后，
+> 再把该地址填入工作流环境变量 `base_url`。
+
+Docker 版 Dify 访问本机或内网后端时，需要在 SSRF 代理中放行目标私有地址。在 Dify
+安装目录的 `docker/.env` 中加入（后端与 Dify 同机时）：
 
 ```env
-SSRF_PROXY_ALLOW_PRIVATE_IPS=192.168.64.1/32
+SSRF_PROXY_ALLOW_PRIVATE_IPS=<Dify 容器内 host.docker.internal 解析出的主机网关IP>/32
 SSRF_PROXY_ALLOW_PRIVATE_DOMAINS=host.docker.internal
 ```
 
-然后执行 `docker compose up -d api api_websocket worker ssrf_proxy`。
+如果 `host.docker.internal` 无法解析，将
+`dify/docker-compose.override.example.yml` 复制为 Dify 安装目录下的
+`docker/docker-compose.override.yml`。示例使用 Docker 的 `host-gateway` 动态映射，
+不依赖某台电脑固定的网关 IP。然后在 Dify 的 `docker` 目录执行
+`docker compose exec ssrf_proxy getent hosts host.docker.internal` 获取当前机器的网关 IP，
+将其填入 `SSRF_PROXY_ALLOW_PRIVATE_IPS`。若后端在另一台电脑，则将 `base_url` 设为该电脑
+的可达 IP，并将 `SSRF_PROXY_ALLOW_PRIVATE_IPS` 配置为该后端 IP 的 `/32` 网段。
+配置后执行 `docker compose up -d api api_websocket worker ssrf_proxy`。
 Dify 的 HTTP 节点会经过 SSRF 代理，只有主机映射但未放行私有地址时仍然会报
 `Reached maximum retries`。
 
@@ -231,3 +244,111 @@ Chatflow 应用，以及工作流最后是否连接到 Answer 节点。
 | 前端提示 HTTP 401 | Dify API Key 错误或不是该应用的密钥，重新复制应用 API Key |
 | 错误中同时出现 `[models]` 和 `Authentication Fails` | 这不是应用 API Key 的问题；到 Dify「设置 → 模型供应商」更换模型自己的 API Key |
 | 工作流调用后端超时 | 在 Dify 容器里测试 `base_url`，并确认 SSRF 代理已放行 Windows 主机地址 |
+| Dify Cloud 返回 `Run failed: Request failed with status code 502` | 云端访问不到本机 `base_url`；用公网隧道/反向代理暴露 `9090` 后更新工作流环境变量并重新发布 |
+
+## 十、晋升决策工作流（talent-promotion-agent.yml）
+
+该 Chatflow 使用「后端注入上下文」模式：由本地晋升服务读取晋升候选池、梯队继任、
+岗位技能覆盖、员工档案和技能明细，完成规则评分后把 `promotion_context` 推送给
+Dify Cloud。Dify 不再访问本地接口，因此不需要开放入站端口、公网 IP 或隧道。
+
+```
+用户输入
+  → 晋升服务解析目标岗位/候选人
+  → 本地查询晋升候选池、继任候选人、岗位技能覆盖
+  → 本地合并规则分与重点候选人档案
+  → 后端 POST Dify /v1/chat-messages（携带 promotion_context）
+  → Dify LLM 生成决策说明
+  → Answer
+```
+
+请求链路：
+
+```text
+浏览器 → 本地网关 9090 → 晋升服务 8084 → 本地其他业务接口
+                                      └→ https://api.dify.ai（仅出站）
+```
+
+依赖接口：
+
+| 接口 | 用途 |
+|---|---|
+| `GET /api/planning/positions` | 岗位列表与岗位匹配 |
+| `GET /api/promotion/candidates` | 跨层级且 2026 绩效≥4 的晋升候选池 |
+| `GET /api/planning/succession` | 岗位继任匹配度、准备度与技能缺口 |
+| `GET /api/planning/skill-coverage` | 岗位技能要求及全组织覆盖情况 |
+| `GET /api/employee/referenced` | 从自然语言问题中解析员工姓名或工号，得到稳定员工 ID |
+| `GET /api/employee/{id}` | 重点候选人档案 |
+| `GET /api/employee/{id}/skills` | 重点候选人技能明细 |
+| `GET /api/performance/employees/{id}` | 员工历年绩效 |
+| `GET /api/performance/employees/{id}/trend` | 员工绩效趋势、均值、同比变化 |
+
+规则分口径：
+
+```text
+decisionScore = 0.40 × 晋升分 + 0.35 × 继任匹配度
+              + 0.15 × 准备度 + 0.10 × 风险分
+```
+
+- 晋升分按 `totalScore / 150 × 100` 归一化，并限制在 0–100。
+- `READY_NOW/READY_1_YEAR/READY_2_YEARS/NOT_READY` 分别折算为 100/85/55/20。
+- 低/中/高风险分别折算为 100/60/30。
+- 排序先按 `evidenceCoverage` 分组（`full` 优先），同组再按 readiness
+  `READY_NOW > READY_1_YEAR > READY_2_YEARS > NOT_READY` 和 `decisionScore` 排序。
+- `READY_2_YEARS`、`NOT_READY`，或核心技能匹配为 0/技能分低于 40 的候选人，
+  最高只标记为「进入继任池，暂不晋升」，不会直接给出晋升推荐。
+- 若某人不在一岗的继任池中，`evidenceCoverage` 标记为 `promotion_only`，使用
+  `0.80 × 晋升分 + 0.20 × 风险分`，结论只能写「待补充继任评估」，不能直接判定不匹配。
+- 当晋升候选池与继任池交集为 0 时，证据中会写入 `successionOverlapCount = 0`，
+  LLM 必须提示两池无交集，仅给硬条件符合名单，不直接下晋升结论。
+
+### 接入后端与前端
+
+晋升服务使用独立的 Dify 配置，避免覆盖员工档案助手：
+
+```powershell
+$env:PROMOTION_DIFY_BASE_URL = "https://api.dify.ai"
+$env:PROMOTION_DIFY_API_KEY = "app-晋升应用API密钥"
+```
+
+- 后端代理接口：`GET /api/promotion/ai/status`、`POST /api/promotion/ai/chat`。
+- 浏览器只访问后端接口，不会拿到 API Key。
+- 前端 `http://127.0.0.1:5173/promotion` 底部已接入「晋升决策智能体」。
+- 项目根目录的 `.shared-env.ps1` 会被 `scripts/start-all.ps1` 自动加载；该文件已在
+  `.gitignore` 中，只适合本机保存密钥，不要提交到仓库。
+
+验证配置：
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:9090/api/promotion/ai/status
+```
+
+晋升服务读取本地模块数据时默认访问 `http://127.0.0.1:9090`。如果部署方式不同，
+只在本机启动晋升服务前设置：
+
+```powershell
+$env:TALENT_GATEWAY_URL = "http://127.0.0.1:9090"
+```
+
+导入新版 `talent-promotion-agent.yml` 后：
+
+1. 工作流环境变量应为空，不需要 `base_url`。
+2. Start 节点应包含 `query` 和 `promotion_context` 两个输入变量。
+3. 图中只有「开始 → LLM → 答案」三个节点，不应再有 HTTP 请求节点。
+4. LLM 节点默认使用 `DeepSeek / deepseek-v4-flash`，可换成当前实例已配置的模型。
+5. 发布应用后试问：
+
+```text
+评估市场经理岗位的晋升候选人
+评估张三晋升市场经理的可能性
+给出招聘专员岗位的技能差距和培养建议
+```
+
+注意：晋升候选池是「硬条件候选池」，继任池是「岗位匹配池」，两者口径不同；
+`decisionScore` 仅是规则辅助分，最终晋升仍需结合面谈、编制和人事审批。后端会过滤
+手机号、薪酬、年龄和性别等字段，但员工姓名、绩效、潜力与技能数据仍会发送到 Dify
+Cloud；若数据不能出内网，应改用自建 Dify。
+
+按员工姓名提问（例如「查看龙秀英的绩效趋势」）时，后端会先调用
+`/api/employee/referenced` 解析员工 ID，再注入员工档案、历年绩效和趋势。若数据集中
+只有单年度绩效，模型应明确说明“仅有该年度数据，无法判断多年趋势”，而不是回答没有员工数据。

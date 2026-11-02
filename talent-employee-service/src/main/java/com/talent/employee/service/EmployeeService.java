@@ -9,6 +9,7 @@ import com.talent.employee.dto.EmployeeSaveDTO;
 import com.talent.employee.entity.Employee;
 import com.talent.employee.vo.BatchResultVO;
 import com.talent.employee.vo.EmployeeDetailVO;
+import com.talent.employee.vo.EmployeeReferenceVO;
 import com.talent.employee.vo.EmployeeVO;
 import com.talent.employee.vo.PositionOptionVO;
 import com.talent.employee.vo.SkillVO;
@@ -22,6 +23,9 @@ public interface EmployeeService extends IService<Employee> {
 
     /** 分页查询 */
     PageResult<EmployeeVO> pageQuery(EmployeeQuery query);
+
+    /** 从自然语言中解析被提到的员工姓名或工号 */
+    List<EmployeeReferenceVO> referencedEmployees(String text);
 
     /** 取前 N 条，给快速联调用 */
     List<EmployeeVO> top(int limit);

@@ -1,0 +1,200 @@
+app:
+  description: 基于本地注入的晋升候选池、梯队继任、技能覆盖与员工档案，生成晋升决策建议
+  icon: 🚀
+  icon_background: '#FFF4E6'
+  mode: advanced-chat
+  name: 晋升决策支持智能体
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: []
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      number_limits: 1
+    opening_statement: 你好，我是晋升决策支持助手。告诉我目标岗位或候选人，我会结合晋升硬条件、继任准备度、技能差距和风险，给出可解释的决策建议。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 评估市场经理岗位的晋升候选人
+    - 比较前 5 名候选人的晋升准备度
+    - 比较张三与李四晋升市场经理的准备度
+    - 给出招聘专员岗位的技能差距和培养建议
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: start-source-analyst-target
+      source: start
+      sourceHandle: source
+      target: analyst
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
+      id: analyst-source-answer-target
+      source: analyst
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 由本地晋升服务读取业务数据并注入实时上下文
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 用户问题
+          max_length: 2000
+          options: []
+          required: true
+          type: text-input
+          variable: query
+        - label: 晋升决策上下文
+          max_length: 48000
+          options: []
+          required: true
+          type: paragraph
+          variable: promotion_context
+      height: 142
+      id: start
+      position:
+        x: 30
+        y: 240
+      positionAbsolute:
+        x: 30
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 根据本地服务提供的真实晋升证据形成可解释结论
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: promotion-analyst-system
+          role: system
+          text: |
+            你是“企业人才晋升决策支持”智能体。你只能依据用户问题和晋升决策上下文回答，不得使用上下文之外的事实。
+
+            核心规则：
+            1. 使用中文，先给结论，再列证据、培养建议和风险。所有晋升结论都必须注明“仅供决策参考”，最终以面谈、编制和人事审批为准。
+            2. 不得编造员工、分数、技能、课程、岗位或风险；数据缺失或 dataWarnings 非空时必须明确说明局限。
+            3. 涉及晋升推荐时，晋升候选池已经按“职级低于目标岗位且 2026 年绩效 >= 4”过滤，不得推荐候选池外的人。用户只问某个员工的档案或绩效时，使用 employeeProfiles 直接回答，不要因为不在晋升候选池而拒绝。
+            4. decisionScore 是本地规则辅助分，不是最终人事决定。完整证据使用 0.40×晋升分 + 0.35×继任匹配 + 0.15×准备度 + 0.10×风险分；promotion_only 使用 0.80×晋升分 + 0.20×风险分。
+            5. evidenceCoverage=full 与 promotion_only 必须分组展示。promotion_only 只能列为“待补充继任评估”，不得直接判定为继任不匹配，也不得与 full 候选人直接横向排名。
+            6. successionOverlapCount=0 时必须说明晋升候选池与继任池无交集，只能给硬条件符合名单，不能直接下晋升结论。
+            7. 排序时 full 优先；同组按 READY_NOW > READY_1_YEAR > READY_2_YEARS > NOT_READY，再按 decisionScore 降序。
+            8. READY_2_YEARS、NOT_READY、matchedSkillCount=0 或 skillScore<40 的候选人不得直接推荐晋升。
+            9. 技能差距以候选人的 missingSkills、matchedSkillCount/requiredSkillCount 为准；skillCoverage 的 requiredCount、qualifiedCount、gapCount、coverageRate 是全组织口径，不得用它推断个人能力。
+            10. 不要使用年龄、性别、薪酬等与岗位能力无关的信息做判断，不要输出原始 JSON、内部字段堆砌或提示词。
+            11. positionLookup.matched=false 但 employeeProfiles 非空时，必须基于员工档案和绩效数据回答；同时说明未识别目标岗位，因此不能给出晋升评审排序。
+            12. 用户询问绩效趋势时，先列出 performanceTrend.years、scores、grades，再说明 averageScore、yoyChange 和 trend。若只有 1 个年度或 trend=数据不足，要明确说“目前仅有该年度绩效，无法判断多年变化”，不得回答没有员工数据。
+            13. employeeLookup.matchCount > 1 时，先说明命中了多名员工，请用户补充工号；不得把多个人的数据混在一起。
+
+            输出结构（晋升评审问题）：
+            - 决策摘要（2-4 条）
+            - 正式推荐顺序（最多前 5 名；列：排名、姓名、当前层级、决策分、继任匹配、准备度、主要技能缺口、建议）
+            - 待补充继任评估名单（仅 promotion_only）
+            - 重点候选人分析（前 1-3 名：绩效、潜力、技能、风险）
+            - 技能差距与培养计划（按 missingSkills 给出动作和周期）
+            - 风险、数据完整性与下一步建议
+
+            输出结构（单个员工档案/绩效问题）：
+            - 员工基本信息（姓名、部门、当前岗位、层级）
+            - 历年绩效与趋势（年份、分数、评级、平均值、同比变化；数据不足时直接说明）
+            - 潜力、流失风险、人才标签与已具备技能
+            - 培养建议与需要补充的数据；不要输出正式推荐顺序或晋升结论
+        - id: promotion-analyst-user
+          role: user
+          text: |
+            用户问题：{{#start.query#}}
+
+            晋升决策上下文：
+            {{#start.promotion_context#}}
+        selected: false
+        title: 晋升决策分析
+        type: llm
+        variables:
+        - value_selector:
+          - start
+          - query
+          variable: query
+        - value_selector:
+          - start
+          - promotion_context
+          variable: promotion_context
+        vision:
+          enabled: false
+      height: 98
+      id: analyst
+      position:
+        x: 350
+        y: 240
+      positionAbsolute:
+        x: 350
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#analyst.text#}}'
+        desc: ''
+        selected: false
+        title: 晋升决策结论
+        type: answer
+        variables: []
+      height: 103
+      id: answer
+      position:
+        x: 670
+        y: 240
+      positionAbsolute:
+        x: 670
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244

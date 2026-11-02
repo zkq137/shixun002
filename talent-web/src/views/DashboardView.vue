@@ -54,6 +54,8 @@ const analysisAssistantPrompts = [
       :quick-prompts="analysisAssistantPrompts"
       status-endpoint="/analysis/ai/status"
       chat-endpoint="/analysis/ai/chat"
+      service-name="分析服务"
+      config-env-prefix="ANALYSIS_DIFY"
       class="analysis-assistant"
     />
   </div>

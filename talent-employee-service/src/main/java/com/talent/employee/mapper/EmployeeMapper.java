@@ -149,7 +149,7 @@ public interface EmployeeMapper extends BaseMapper<Employee> {
      * 只用于把姓名解析成稳定的员工 ID，实际业务仍按 ID 调用。
      */
     @Select("""
-            select id, emp_no, name
+            select id, emp_no, name, department
             from emp_employee
             where #{text} like concat('%', name, '%')
                or #{text} like concat('%', emp_no, '%')

@@ -16,6 +16,7 @@ import com.talent.employee.mapper.EmployeeMapper;
 import com.talent.employee.service.EmployeeService;
 import com.talent.employee.vo.BatchResultVO;
 import com.talent.employee.vo.EmployeeDetailVO;
+import com.talent.employee.vo.EmployeeReferenceVO;
 import com.talent.employee.vo.EmployeeVO;
 import com.talent.employee.vo.PositionOptionVO;
 import com.talent.employee.vo.SkillVO;
@@ -44,6 +45,21 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
         Page<EmployeeVO> page = new Page<>(query.getPageNum(), query.getPageSize());
         IPage<EmployeeVO> result = baseMapper.selectEmployeePage(page, query, perfYear);
         return new PageResult<>(result.getTotal(), result.getCurrent(), result.getSize(), result.getRecords());
+    }
+
+    @Override
+    public List<EmployeeReferenceVO> referencedEmployees(String text) {
+        if (!StringUtils.hasText(text)) {
+            return List.of();
+        }
+        return baseMapper.selectReferencedEmployees(text).stream().map(employee -> {
+            EmployeeReferenceVO vo = new EmployeeReferenceVO();
+            vo.setId(employee.getId());
+            vo.setEmpNo(employee.getEmpNo());
+            vo.setName(employee.getName());
+            vo.setDepartment(employee.getDepartment());
+            return vo;
+        }).toList();
     }
 
     @Override

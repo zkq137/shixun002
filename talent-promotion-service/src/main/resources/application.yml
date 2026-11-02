@@ -53,3 +53,13 @@ mybatis-plus:
 logging:
   level:
     com.talent: debug
+
+# 晋升决策 Dify 应用（API Key 只放服务端，不要写进前端）
+talent:
+  local-api:
+    # 晋升服务通过本地网关读取其他模块数据；不对外开放，也不由 Dify 调用
+    base-url: ${TALENT_GATEWAY_URL:http://127.0.0.1:9090}
+  dify:
+    base-url: ${PROMOTION_DIFY_BASE_URL:${DIFY_BASE_URL:}}
+    api-key: ${PROMOTION_DIFY_API_KEY:}
+    default-user: ${PROMOTION_DIFY_USER:web-promotion}

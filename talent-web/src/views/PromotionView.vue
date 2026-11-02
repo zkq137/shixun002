@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import ModuleAssistant from '@/components/ModuleAssistant.vue'
 import { fetchPositionOptions } from '@/api/employee'
 import { fetchPromotionCandidates } from '@/api/promotion'
 import type { PositionOption, PromotionCandidate } from '@/api/types'
@@ -10,6 +11,12 @@ const positionId = ref<number | null>(null)
 const limit = ref(10)
 const loading = ref(false)
 const candidates = ref<PromotionCandidate[]>([])
+const promotionAssistantPrompts = [
+  '评估市场经理岗位的晋升候选人',
+  '比较前 5 名候选人的晋升准备度',
+  '给出招聘专员岗位的技能差距和培养建议',
+  '评估张三晋升市场经理的可能性',
+]
 
 async function load() {
   if (positionId.value === null) return
@@ -91,5 +98,22 @@ onMounted(async () => {
         <template #empty>选择岗位后点「查询候选人」</template>
       </el-table>
     </el-card>
+
+    <ModuleAssistant
+      module-key="promotion"
+      title="晋升决策智能体"
+      :quick-prompts="promotionAssistantPrompts"
+      status-endpoint="/promotion/ai/status"
+      chat-endpoint="/promotion/ai/chat"
+      service-name="晋升服务"
+      config-env-prefix="PROMOTION_DIFY"
+      class="promotion-assistant"
+    />
   </div>
 </template>
+
+<style scoped>
+.promotion-assistant {
+  margin-top: 22px;
+}
+</style>

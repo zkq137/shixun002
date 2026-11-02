@@ -70,12 +70,16 @@ const props = withDefaults(
     quickPrompts?: string[]
     statusEndpoint?: string
     chatEndpoint?: string
+    serviceName?: string
+    configEnvPrefix?: string
   }>(),
   {
     title: '模块智能助手',
     quickPrompts: () => [],
     statusEndpoint: '/ai/status',
     chatEndpoint: '/ai/chat',
+    serviceName: '员工服务',
+    configEnvPrefix: 'DIFY',
   },
 )
 
@@ -411,9 +415,9 @@ onMounted(async () => {
       title="AI 助手尚未连接 Dify"
     >
       <div style="line-height: 1.8">
-        在员工服务启动前设置环境变量：
-        <code>DIFY_BASE_URL=http://你的Dify地址</code> 和
-        <code>DIFY_API_KEY=app-xxxx</code>，然后重启员工服务。
+        在{{ serviceName }}启动前设置环境变量：
+        <code>{{ configEnvPrefix }}_BASE_URL=http://你的Dify地址</code> 和
+        <code>{{ configEnvPrefix }}_API_KEY=app-xxxx</code>，然后重启{{ serviceName }}。
       </div>
     </el-alert>
 
