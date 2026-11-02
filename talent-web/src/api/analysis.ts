@@ -1,9 +1,14 @@
 import { del, get, post } from './request'
 import type {
   Dashboard,
+  FlowForecastData,
   FlowTrendData,
   ModelEffectData,
+  ModelArtifact,
+  ModelPrediction,
   ModelLogItem,
+  ModelTrainResult,
+  PositionRecommendation,
   PageResult,
   PipelineData,
   ReportOption,
@@ -27,9 +32,57 @@ export function fetchFlowTrend() {
   return get<FlowTrendData>('/analysis/flow-trend')
 }
 
+/** 生成未来人才流动预测 */
+export function generateFlowForecast(horizonMonths: number) {
+  return post<FlowForecastData>('/analysis/forecast/generate', undefined, {
+    params: { horizonMonths },
+  })
+}
+
+/** 最近一次人才流动预测 */
+export function fetchLatestFlowForecast() {
+  return get<FlowForecastData | null>('/analysis/forecast/latest')
+}
+
+export const FLOW_FORECAST_EXPORT_URL = '/api/analysis/forecast/export'
+export const FLOW_FORECAST_IMPORT_URL = '/api/analysis/forecast/import'
+
 /** 模型运行效果 */
 export function fetchModelEffect() {
   return get<ModelEffectData>('/analysis/model/effect')
+}
+
+/** 训练全部人才模型 */
+export function trainAllModels() {
+  return post<ModelTrainResult[]>('/analysis/model/train-all')
+}
+
+/** 训练指定模型 */
+export function trainModel(modelCode: string) {
+  return post<ModelTrainResult>(`/analysis/model/train/${modelCode}`)
+}
+
+/** 最新已部署模型 */
+export function fetchModelArtifacts() {
+  return get<ModelArtifact[]>('/analysis/model/artifacts')
+}
+
+/** 流失风险预测 */
+export function predictAttrition(employee: string | number) {
+  return get<ModelPrediction>(`/analysis/model/predict/attrition/${encodeURIComponent(employee)}`)
+}
+
+/** 高潜人才预测 */
+export function predictHighPotential(employee: string | number) {
+  return get<ModelPrediction>(`/analysis/model/predict/potential/${encodeURIComponent(employee)}`)
+}
+
+/** 岗位匹配推荐 */
+export function recommendPositions(employee: string | number, topN = 5) {
+  return get<PositionRecommendation>(
+    `/analysis/model/recommend/positions/${encodeURIComponent(employee)}`,
+    { topN },
+  )
 }
 
 /** 模型训练日志分页 */

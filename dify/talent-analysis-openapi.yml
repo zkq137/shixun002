@@ -79,6 +79,78 @@ paths:
                   data: {}
                   timestamp:
                     type: integer
+  /api/analysis/forecast/generate:
+    post:
+      summary: 生成人才流入流出晋升预测
+      operationId: generateFlowForecast
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 生成人才流入流出晋升预测
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: horizonMonths
+        in: query
+        required: false
+        schema:
+          type: string
+  /api/analysis/forecast/latest:
+    get:
+      summary: 查询最近一次人才流动预测
+      operationId: getLatestFlowForecast
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询最近一次人才流动预测
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/forecast/export:
+    get:
+      summary: 导出最近一次预测 CSV
+      operationId: exportFlowForecast
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 导出最近一次预测 CSV
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
   /api/analysis/report/options:
     get:
       summary: 查询报表维度和指标
@@ -448,3 +520,171 @@ paths:
                   data: {}
                   timestamp:
                     type: integer
+  /api/analysis/model/artifacts:
+    get:
+      summary: 查询已部署模型
+      operationId: getModelArtifacts
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 查询已部署模型
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/model/train-all:
+    post:
+      summary: 训练全部人才模型
+      operationId: trainAllModels
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 训练全部人才模型
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+  /api/analysis/model/train/{modelCode}:
+    post:
+      summary: 训练指定人才模型
+      operationId: trainTalentModel
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 训练指定人才模型
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: modelCode
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - attrition-risk
+          - high-potential
+          - position-fit
+  /api/analysis/model/predict/attrition/{employee}:
+    get:
+      summary: 预测员工流失风险
+      operationId: predictAttrition
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 预测员工流失风险
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: employee
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 员工数字ID、完整工号或完整姓名
+  /api/analysis/model/predict/potential/{employee}:
+    get:
+      summary: 预测员工高潜等级
+      operationId: predictHighPotential
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 预测员工高潜等级
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: employee
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 员工数字ID、完整工号或完整姓名
+  /api/analysis/model/recommend/positions/{employee}:
+    get:
+      summary: 推荐匹配岗位
+      operationId: recommendPositions
+      tags:
+      - 数据分析与报告
+      responses:
+        '200':
+          description: 推荐匹配岗位
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                  data: {}
+                  timestamp:
+                    type: integer
+      parameters:
+      - name: employee
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 员工数字ID、完整工号或完整姓名
+      - name: topN
+        in: query
+        required: false
+        schema:
+          type: string

@@ -42,6 +42,7 @@ workflow:
     suggested_questions:
     - 分析当前人才梯队健康度
     - 查看人才流动趋势和主要风险
+    - 预测未来 6 个月人才流动趋势
     - 按部门生成人数和平均绩效报表
     - 查看模型运行效果最好的版本
     suggested_questions_after_answer:
@@ -257,9 +258,9 @@ workflow:
         prompt_template:
         - id: planner-system
           role: system
-          text: "你是「企业人才数据分析与报告」智能体。\n你的任务：把用户的自然语言需求转换成一个后端 API 调用计划。\n\n只输出一个 JSON 对象，不要输出 Markdown、解释或多余文字。\nJSON 格式：\n{\"method\":\"GET|POST|DELETE|NONE\",\"path\":\"/api/analysis/...\",\"body\":{},\"summary\":\"一句话说明要做什么\"}\n\n规则：\n1. GET 查询参数直接拼在 path 里。\n2. POST 请求体放在 body 对象中。\n3. 删除报表或模板属于危险操作。只有用户明确说“确认删除”时才输出 DELETE，否则 method=NONE 并请用户确认。\n4. 报表生成只能使用 options 中的维度/指标 key；未给指标时默认 count。\n5. 同名报表模板没有修改接口。用户要改模板时，请先删除旧模板并重新保存，必须明确确认删除。\n6. 当前没有人才流入/流出/晋升的预测模型接口，也没有预测数据导入导出接口。\n   用户要求这些功能时，method=NONE，并说明当前只能分析历史流动趋势，不能伪造预测结果。\n7. 当前没有仪表盘配置导出、报表模板导入接口。遇到这些需求时 method=NONE 并说明限制。\n8. 不要编造接口，不要声称执行了未调用接口的操作。\n\n可用接口：\n【人才盘点与梯队健康度】\nGET /api/analysis/dashboard\nGET /api/analysis/pipeline\nGET /api/analysis/flow-trend\n\n【自定义报表】\nGET  /api/analysis/report/options\nPOST /api/analysis/report/generate\n     body: {reportName,dimensions:[],metrics:[],filters:{},save:false}\nPOST /api/analysis/report/from-template/{templateId}\nGET  /api/analysis/report/history\nGET  /api/analysis/report/templates\n\
-            POST /api/analysis/report/templates\n     body: {reportName,dimensions:[],metrics:[],filters:{},save:false}\nDELETE /api/analysis/report/templates/{id}\nGET  /api/analysis/report/{id}\nDELETE /api/analysis/report/{id}\n\n【模型运行效果与日志】\nGET /api/analysis/model/effect\nGET /api/analysis/model/logs?modelName=&status=&version=&pageNum=1&pageSize=10\nGET /api/analysis/model/logs/{id}\nGET /api/analysis/model/names\n\n报表维度 key：\ndepartment, levelTier, position, positionType, potentialLevel, talentTag,\nwarningLevel, workMode, gender, ageRange, tenureRange, perfLevel\n\n报表指标 key：\ncount, avgAge, avgTenure, avgSalary, avgPerf, avgPotential, avgRiskScore,\nhighRiskCount, middleRiskCount, coreTalentCount, reserveTalentCount,\nhighPotentialCount\n\n常用报表示例：\n- 部门人数和平均绩效：\n  {\"dimensions\":[\"department\"],\"metrics\":[\"count\",\"avgPerf\"]}\n- 人才标签与流失风险交叉：\n  {\"dimensions\":[\"talentTag\",\"warningLevel\"],\"metrics\":[\"count\"]}\n- 高风险员工部门分布：\n  {\"dimensions\":[\"department\"],\"metrics\"\
-            :[\"count\",\"highRiskCount\"],\n   \"filters\":{\"warningLevel\":\"高风险\"}}\n"
+          text: "你是「企业人才数据分析与报告」智能体。\n你的任务：把用户的自然语言需求转换成一个后端 API 调用计划。\n\n只输出一个 JSON 对象，不要输出 Markdown、解释或多余文字。\nJSON 格式：\n{\"method\":\"GET|POST|DELETE|NONE\",\"path\":\"/api/analysis/...\",\"body\":{},\"summary\":\"一句话说明要做什么\"}\n\n规则：\n1. GET 查询参数直接拼在 path 里。\n2. POST 请求体放在 body 对象中。\n3. 删除报表或模板属于危险操作。只有用户明确说“确认删除”时才输出 DELETE，否则 method=NONE 并请用户确认。\n4. 报表生成只能使用 options 中的维度/指标 key；未给指标时默认 count。\n5. 同名报表模板没有修改接口。用户要改模板时，请先删除旧模板并重新保存，必须明确确认删除。\n6. 用户询问未来流入/流出/晋升趋势时，调用 forecast/generate。\n   流入使用 24 个月季节调整趋势；流出/晋升历史事件不足时使用风险池/高潜池基线，\n   必须在解读中说明置信度和不是严格历史训练预测。\n7. 预测 CSV 导入需要文件上传，提示用户在“人才流动趋势”页面操作；\n   预测导出可返回 /api/analysis/forecast/export 下载链接。\n8. 当前没有仪表盘配置导出、报表模板导入接口。遇到这些需求时 method=NONE 并说明限制。\n9. 不要编造接口，不要声称执行了未调用接口的操作。\n\n可用接口：\n【人才盘点与梯队健康度】\nGET /api/analysis/dashboard\nGET /api/analysis/pipeline\nGET /api/analysis/flow-trend\nPOST /api/analysis/forecast/generate?horizonMonths=6\nGET /api/analysis/forecast/latest\nGET /api/analysis/forecast/export\n\n【自定义报表】\nGET  /api/analysis/report/options\n\
+            POST /api/analysis/report/generate\n     body: {reportName,dimensions:[],metrics:[],filters:{},save:false}\nPOST /api/analysis/report/from-template/{templateId}\nGET  /api/analysis/report/history\nGET  /api/analysis/report/templates\nPOST /api/analysis/report/templates\n     body: {reportName,dimensions:[],metrics:[],filters:{},save:false}\nDELETE /api/analysis/report/templates/{id}\nGET  /api/analysis/report/{id}\nDELETE /api/analysis/report/{id}\n\n【模型运行效果与日志】\nGET /api/analysis/model/effect\nGET /api/analysis/model/logs?modelName=&status=&version=&pageNum=1&pageSize=10\nGET /api/analysis/model/logs/{id}\nGET /api/analysis/model/names\nGET /api/analysis/model/artifacts\nPOST /api/analysis/model/train-all\nPOST /api/analysis/model/train/{modelCode}\nGET /api/analysis/model/predict/attrition/{employee}\nGET /api/analysis/model/predict/potential/{employee}\nGET /api/analysis/model/recommend/positions/{employee}?topN=5\n\n可训练模型 code：\n- attrition-risk：人才流失风险预测，标签为现有中风险/高风险\n- high-potential：高潜人才识别，标签为现有\
+            \ S/A 级\n- position-fit：岗位匹配度推荐，当前任职岗位为正样本\n\n只有用户明确要求“训练模型/重新训练”时才调用训练接口。\n预测或岗位推荐的 employee 参数可以是数字 ID、完整工号或完整姓名。\n\n报表维度 key：\ndepartment, levelTier, position, positionType, potentialLevel, talentTag,\nwarningLevel, workMode, gender, ageRange, tenureRange, perfLevel\n\n报表指标 key：\ncount, avgAge, avgTenure, avgSalary, avgPerf, avgPotential, avgRiskScore,\nhighRiskCount, middleRiskCount, coreTalentCount, reserveTalentCount,\nhighPotentialCount\n\n常用报表示例：\n- 部门人数和平均绩效：\n  {\"dimensions\":[\"department\"],\"metrics\":[\"count\",\"avgPerf\"]}\n- 人才标签与流失风险交叉：\n  {\"dimensions\":[\"talentTag\",\"warningLevel\"],\"metrics\":[\"count\"]}\n- 高风险员工部门分布：\n  {\"dimensions\":[\"department\"],\"metrics\":[\"count\",\"highRiskCount\"],\n   \"filters\":{\"warningLevel\":\"高风险\"}}\n"
         - id: planner-user
           role: user
           text: 用户需求：{{#start.query#}}
@@ -419,7 +420,7 @@ workflow:
 
             5. 输出适合业务人员阅读，使用简短标题和项目符号，不要输出原始 JSON。
 
-            6. 如果用户询问未来预测，只能基于历史趋势给出观察和情景判断，并明确说明这不是预测模型结果。
+            6. 如果用户询问未来预测，说明预测周期、方法、置信区间和置信度；低置信度结果不能用于个人决策。
 
             7. 不得复述“系统预校验”文本，也不得输出 method/path/body 调用计划。
 
@@ -573,7 +574,7 @@ workflow:
 
             5. 输出适合业务人员阅读，使用简短标题和项目符号，不要输出原始 JSON。
 
-            6. 如果用户询问未来预测，只能基于历史趋势给出观察和情景判断，并明确说明这不是预测模型结果。
+            6. 如果用户询问未来预测，说明预测周期、方法、置信区间和置信度；低置信度结果不能用于个人决策。
 
             7. 不得复述“系统预校验”文本，也不得输出 method/path/body 调用计划。
 

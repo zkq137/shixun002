@@ -24,16 +24,22 @@ JSON 格式：
 3. 删除报表或模板属于危险操作。只有用户明确说“确认删除”时才输出 DELETE，否则 method=NONE 并请用户确认。
 4. 报表生成只能使用 options 中的维度/指标 key；未给指标时默认 count。
 5. 同名报表模板没有修改接口。用户要改模板时，请先删除旧模板并重新保存，必须明确确认删除。
-6. 当前没有人才流入/流出/晋升的预测模型接口，也没有预测数据导入导出接口。
-   用户要求这些功能时，method=NONE，并说明当前只能分析历史流动趋势，不能伪造预测结果。
-7. 当前没有仪表盘配置导出、报表模板导入接口。遇到这些需求时 method=NONE 并说明限制。
-8. 不要编造接口，不要声称执行了未调用接口的操作。
+6. 用户询问未来流入/流出/晋升趋势时，调用 forecast/generate。
+   流入使用 24 个月季节调整趋势；流出/晋升历史事件不足时使用风险池/高潜池基线，
+   必须在解读中说明置信度和不是严格历史训练预测。
+7. 预测 CSV 导入需要文件上传，提示用户在“人才流动趋势”页面操作；
+   预测导出可返回 /api/analysis/forecast/export 下载链接。
+8. 当前没有仪表盘配置导出、报表模板导入接口。遇到这些需求时 method=NONE 并说明限制。
+9. 不要编造接口，不要声称执行了未调用接口的操作。
 
 可用接口：
 【人才盘点与梯队健康度】
 GET /api/analysis/dashboard
 GET /api/analysis/pipeline
 GET /api/analysis/flow-trend
+POST /api/analysis/forecast/generate?horizonMonths=6
+GET /api/analysis/forecast/latest
+GET /api/analysis/forecast/export
 
 【自定义报表】
 GET  /api/analysis/report/options
@@ -53,6 +59,20 @@ GET /api/analysis/model/effect
 GET /api/analysis/model/logs?modelName=&status=&version=&pageNum=1&pageSize=10
 GET /api/analysis/model/logs/{id}
 GET /api/analysis/model/names
+GET /api/analysis/model/artifacts
+POST /api/analysis/model/train-all
+POST /api/analysis/model/train/{modelCode}
+GET /api/analysis/model/predict/attrition/{employee}
+GET /api/analysis/model/predict/potential/{employee}
+GET /api/analysis/model/recommend/positions/{employee}?topN=5
+
+可训练模型 code：
+- attrition-risk：人才流失风险预测，标签为现有中风险/高风险
+- high-potential：高潜人才识别，标签为现有 S/A 级
+- position-fit：岗位匹配度推荐，当前任职岗位为正样本
+
+只有用户明确要求“训练模型/重新训练”时才调用训练接口。
+预测或岗位推荐的 employee 参数可以是数字 ID、完整工号或完整姓名。
 
 报表维度 key：
 department, levelTier, position, positionType, potentialLevel, talentTag,
@@ -83,7 +103,7 @@ ANALYST_PROMPT = """你是企业人力资源战略数据分析专家。
 3. 区分事实和推断；推断必须写明依据，禁止编造数据中不存在的信息。
 4. 如果返回 code 不是 200，直接解释错误原因和修正建议。
 5. 输出适合业务人员阅读，使用简短标题和项目符号，不要输出原始 JSON。
-6. 如果用户询问未来预测，只能基于历史趋势给出观察和情景判断，并明确说明这不是预测模型结果。
+6. 如果用户询问未来预测，说明预测周期、方法、置信区间和置信度；低置信度结果不能用于个人决策。
 7. 不得复述“系统预校验”文本，也不得输出 method/path/body 调用计划。
 """
 
@@ -273,6 +293,7 @@ def build_workflow(source):
     workflow["workflow"]["features"]["suggested_questions"] = [
         "分析当前人才梯队健康度",
         "查看人才流动趋势和主要风险",
+        "预测未来 6 个月人才流动趋势",
         "按部门生成人数和平均绩效报表",
         "查看模型运行效果最好的版本",
     ]
@@ -525,6 +546,16 @@ def query_param(name, required=False):
     }
 
 
+def employee_param(name="employee"):
+    return {
+        "name": name,
+        "in": "path",
+        "required": True,
+        "schema": {"type": "string"},
+        "description": "员工数字ID、完整工号或完整姓名",
+    }
+
+
 REPORT_SCHEMA = {
     "type": "object",
     "required": ["reportName", "dimensions", "metrics"],
@@ -571,6 +602,19 @@ def build_openapi():
             },
             "/api/analysis/flow-trend": {
                 "get": op("人才历史流动趋势", "getFlowTrend")
+            },
+            "/api/analysis/forecast/generate": {
+                "post": op(
+                    "生成人才流入流出晋升预测",
+                    "generateFlowForecast",
+                    parameters=[query_param("horizonMonths")],
+                )
+            },
+            "/api/analysis/forecast/latest": {
+                "get": op("查询最近一次人才流动预测", "getLatestFlowForecast")
+            },
+            "/api/analysis/forecast/export": {
+                "get": op("导出最近一次预测 CSV", "exportFlowForecast")
             },
             "/api/analysis/report/options": {
                 "get": op("查询报表维度和指标", "getReportOptions")
@@ -624,6 +668,48 @@ def build_openapi():
             },
             "/api/analysis/model/names": {
                 "get": op("查询模型名称列表", "getModelNames")
+            },
+            "/api/analysis/model/artifacts": {
+                "get": op("查询已部署模型", "getModelArtifacts")
+            },
+            "/api/analysis/model/train-all": {
+                "post": op("训练全部人才模型", "trainAllModels")
+            },
+            "/api/analysis/model/train/{modelCode}": {
+                "post": op(
+                    "训练指定人才模型",
+                    "trainTalentModel",
+                    parameters=[{
+                        "name": "modelCode",
+                        "in": "path",
+                        "required": True,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["attrition-risk", "high-potential", "position-fit"],
+                        },
+                    }],
+                )
+            },
+            "/api/analysis/model/predict/attrition/{employee}": {
+                "get": op(
+                    "预测员工流失风险",
+                    "predictAttrition",
+                    parameters=[employee_param()],
+                )
+            },
+            "/api/analysis/model/predict/potential/{employee}": {
+                "get": op(
+                    "预测员工高潜等级",
+                    "predictHighPotential",
+                    parameters=[employee_param()],
+                )
+            },
+            "/api/analysis/model/recommend/positions/{employee}": {
+                "get": op(
+                    "推荐匹配岗位",
+                    "recommendPositions",
+                    parameters=[employee_param(), query_param("topN")],
+                )
             },
         },
     }
