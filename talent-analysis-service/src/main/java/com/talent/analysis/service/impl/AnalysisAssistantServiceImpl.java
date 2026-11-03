@@ -41,6 +41,7 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
     private final JdbcTemplate jdbcTemplate;
     private final FlowForecastService flowForecastService;
     private final TalentModelService talentModelService;
+    private final AnalysisEvidenceService evidenceService;
 
     private static final Pattern REASONING_BLOCK = Pattern.compile(
             "(?is)<think\\b[^>]*>.*?</think\\s*>");
@@ -85,10 +86,11 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
             return vo;
         }
 
-        String query = hardenAnalysisIntent(dto.getQuery());
+        String context = evidenceService.buildContext(dto.getQuery());
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("inputs", Map.of("query", query));
-        body.put("query", query);
+        // The backend injects a read-only analytics snapshot; Dify does not call the gateway.
+        body.put("inputs", Map.of("query", dto.getQuery(), "analysis_context", context));
+        body.put("query", dto.getQuery());
         body.put("response_mode", "blocking");
         body.put("conversation_id",
                 dto.getConversationId() == null ? "" : dto.getConversationId());
@@ -429,7 +431,7 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
             if (restClient == null) {
                 SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
                 requestFactory.setConnectTimeout(10_000);
-                requestFactory.setReadTimeout(180_000);
+                requestFactory.setReadTimeout(300_000);
                 restClient = RestClient.builder().requestFactory(requestFactory).build();
             }
             return restClient;

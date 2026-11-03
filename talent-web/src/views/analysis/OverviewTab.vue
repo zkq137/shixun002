@@ -39,42 +39,42 @@ function num(value?: number | null, unit = '') {
     <el-row :gutter="16">
       <el-col :span="4">
         <el-card shadow="hover">
-          <el-icon color="#409eff" :size="20"><User /></el-icon>
+          <el-icon color="#2563eb" :size="20"><User /></el-icon>
           <div class="stat-value">{{ data?.totalEmployees ?? '-' }}</div>
           <div class="stat-label">在职员工</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <el-icon color="#67c23a" :size="20"><OfficeBuilding /></el-icon>
+          <el-icon color="#16a34a" :size="20"><OfficeBuilding /></el-icon>
           <div class="stat-value">{{ data?.positionCount ?? '-' }}</div>
           <div class="stat-label">岗位数</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <el-icon color="#f56c6c" :size="20"><Warning /></el-icon>
-          <div class="stat-value">{{ data?.highRiskCount ?? '-' }}</div>
+          <el-icon color="#dc2626" :size="20"><Warning /></el-icon>
+          <div class="stat-value text-danger">{{ data?.highRiskCount ?? '-' }}</div>
           <div class="stat-label">高风险人员</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <el-icon color="#e6a23c" :size="20"><Money /></el-icon>
+          <el-icon color="#d97706" :size="20"><Money /></el-icon>
           <div class="stat-value">{{ money(data?.avgSalary) }}</div>
           <div class="stat-label">平均年薪</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <el-icon color="#909399" :size="20"><Clock /></el-icon>
+          <el-icon color="#2563eb" :size="20"><Clock /></el-icon>
           <div class="stat-value">{{ num(data?.avgTenure, ' 年') }}</div>
           <div class="stat-label">平均司龄</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <el-icon color="#909399" :size="20"><Calendar /></el-icon>
+          <el-icon color="#16a34a" :size="20"><Calendar /></el-icon>
           <div class="stat-value">{{ num(data?.avgAge, ' 岁') }}</div>
           <div class="stat-label">平均年龄</div>
         </el-card>
@@ -104,7 +104,6 @@ function num(value?: number | null, unit = '') {
             <el-progress
               :percentage="percent(item.value, data?.positionTop)"
               :stroke-width="14"
-              color="#67c23a"
               style="flex: 1"
             />
             <span class="dist-count">{{ item.value }} 人</span>

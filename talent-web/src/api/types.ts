@@ -270,6 +270,100 @@ export interface PromotionCandidate {
   totalScore?: number | null
 }
 
+/** 一条年度绩效记录 */
+export interface PerformanceRecord {
+  id: number
+  employeeId: number
+  empNo?: string | null
+  name?: string | null
+  department?: string | null
+  perfYear: number
+  score?: number | null
+  grade?: string | null
+  dimensions?: Record<string, number>
+  createdAt?: string | null
+}
+
+/** 绩效趋势 */
+export interface PerformanceTrend {
+  employeeId: number
+  empNo?: string | null
+  name?: string | null
+  years: number[]
+  scores: number[]
+  grades: string[]
+  dimensionKeys: string[]
+  dimensionSeries: Array<{ name: string; data: number[] }>
+  averageScore?: number | null
+  maxScore?: number | null
+  minScore?: number | null
+  yoyChange?: number | null
+  trend?: string | null
+}
+
+/** 潜力模型指标 */
+export interface PotentialIndicator {
+  key: string
+  label: string
+  weight: number
+  description?: string | null
+}
+
+/** 潜力模型等级规则 */
+export interface PotentialLevelRule {
+  level: string
+  minScore: number
+}
+
+/** 潜力量化模型 */
+export interface PotentialModel {
+  modelName: string
+  formula: string
+  indicators: PotentialIndicator[]
+  levels: PotentialLevelRule[]
+}
+
+/** 员工潜力评估结果 */
+export interface PotentialRecord {
+  id?: number
+  employeeId: number
+  empNo?: string | null
+  name?: string | null
+  department?: string | null
+  potentialLevel?: string | null
+  totalScore?: number | null
+  updatedAt?: string | null
+  indicators: Record<string, number>
+}
+
+/** 学习路径阶段任务 */
+export interface LearningPathTask {
+  id: number
+  taskName: string
+  stage: number
+  courseId?: number | null
+  courseName?: string | null
+}
+
+/** 可复用学习路径模板 */
+export interface LearningPath {
+  id: number
+  pathName: string
+  targetSkill?: string | null
+  createdAt?: string | null
+  tasks?: LearningPathTask[]
+}
+
+/** 课程培训效果汇总 */
+export interface TrainingEffect {
+  courseId: number
+  courseName: string
+  participantCount: number
+  averageAttendRate?: number | null
+  averagePassRate?: number | null
+  averageImproveScore?: number | null
+}
+
 /** 人才盘点看板 */
 export interface Dashboard {
   totalEmployees: number

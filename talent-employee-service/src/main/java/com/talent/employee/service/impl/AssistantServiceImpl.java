@@ -46,6 +46,10 @@ public class AssistantServiceImpl implements AssistantService {
 
     private final EmployeeMapper employeeMapper;
     private final ObjectMapper objectMapper;
+    private final EmployeeAssistantContextService contextService;
+
+    private static final Pattern REASONING_BLOCK = Pattern.compile(
+            "(?is)<think\\b[^>]*>.*?</think\\s*>");
 
     @Value("${talent.dify.base-url:}")
     private String baseUrl;
@@ -73,14 +77,11 @@ public class AssistantServiceImpl implements AssistantService {
                     "AI 助手尚未配置：请设置环境变量 DIFY_BASE_URL 和 DIFY_API_KEY 后重启员工服务");
         }
 
-        String query = isEmployeeCreationQuery(dto.getQuery())
-                ? dto.getQuery()
-                : enrichEmployeeReference(dto.getQuery());
-        query = enrichPositionReference(query);
+        String context = contextService.buildContext(dto.getQuery());
         Map<String, Object> body = new LinkedHashMap<>();
-        // 当前 Chatflow 把用户需求声明为 query 输入变量，Dify API 会做必填校验。
-        body.put("inputs", Map.of("query", query));
-        body.put("query", query);
+        // The backend injects a read-only data snapshot; Dify does not call the gateway.
+        body.put("inputs", Map.of("query", dto.getQuery(), "employee_context", context));
+        body.put("query", dto.getQuery());
         body.put("response_mode", "blocking");
         body.put("conversation_id", dto.getConversationId() == null ? "" : dto.getConversationId());
         body.put("user", StringUtils.hasText(dto.getUser()) ? dto.getUser() : defaultUser);
@@ -99,7 +100,7 @@ public class AssistantServiceImpl implements AssistantService {
                 throw new BusinessException(ResultCode.FAIL.getCode(), "Dify 返回为空");
             }
             AssistantReplyVO vo = new AssistantReplyVO();
-            vo.setAnswer(stringValue(response.get("answer")));
+            vo.setAnswer(cleanAnswer(stringValue(response.get("answer"))));
             vo.setConversationId(stringValue(response.get("conversation_id")));
             vo.setMessageId(stringValue(response.get("message_id")));
             Object createdAt = response.get("created_at");
@@ -250,7 +251,7 @@ public class AssistantServiceImpl implements AssistantService {
             if (restClient == null) {
                 SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
                 requestFactory.setConnectTimeout(10_000);
-                requestFactory.setReadTimeout(120_000);
+                requestFactory.setReadTimeout(300_000);
                 restClient = RestClient.builder().requestFactory(requestFactory).build();
             }
             return restClient;
@@ -264,6 +265,14 @@ public class AssistantServiceImpl implements AssistantService {
 
     private String stringValue(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private String cleanAnswer(String answer) {
+        if (!StringUtils.hasText(answer)) {
+            return answer;
+        }
+        String cleaned = REASONING_BLOCK.matcher(answer).replaceAll("").trim();
+        return cleaned.replace("<!--dify-deepseek-reasoning-->", "").trim();
     }
 
     private String shorten(String text) {

@@ -354,6 +354,13 @@ function tagType(value: unknown) {
   return 'info'
 }
 
+function trendTextTone(value: string) {
+  const normalized = value.trim()
+  if (normalized.startsWith('-') || /下降|降低|减少/.test(normalized)) return 'negative'
+  if (normalized.startsWith('+') || /上升|提升|增长/.test(normalized)) return 'positive'
+  return 'neutral'
+}
+
 function scorePercent(value: string) {
   const score = Number.parseFloat(value)
   if (!Number.isFinite(score)) return '0%'
@@ -514,7 +521,7 @@ onMounted(async () => {
                         <span>最低分 <b>{{ segment.trend.minScore }}</b></span>
                         <span>
                           同比
-                          <b :class="{ negative: segment.trend.yoyChange.startsWith('-') }">
+                          <b :class="trendTextTone(segment.trend.yoyChange)">
                             {{ segment.trend.yoyChange }}
                           </b>
                         </span>
@@ -1176,4 +1183,118 @@ onMounted(async () => {
     padding: 8px;
   }
 }
+</style>
+
+<style scoped>
+/* 黑白主题覆盖 */
+.avatar {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.message-row.user .avatar {
+  background: #111111;
+  color: #ffffff;
+}
+
+.bubble {
+  background: #f7f7f7;
+  color: #111111;
+}
+
+.message-row.user .bubble {
+  background: #111111;
+  color: #ffffff;
+}
+
+.message-row.system .bubble {
+  background: #ededed;
+  color: #333333;
+}
+
+.result-card {
+  border-color: #e3e3e3;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.result-header {
+  border-bottom-color: #eeeeee;
+  background: #f6f6f6;
+}
+
+.result-title,
+.trend-person strong,
+.trend-metrics b,
+.skill-item-head strong,
+.trend-bar-row > b {
+  color: #111111;
+}
+
+.result-count,
+.trend-number,
+.trend-metrics,
+.skill-item p,
+.result-details :deep(.el-descriptions__label) {
+  color: #666666;
+}
+
+.result-pagination,
+.trend-label,
+.skill-group-title small,
+.skill-item-meta,
+.result-empty :deep(.el-empty__description),
+.result-empty p,
+.raw-json :deep(.el-collapse-item__header) {
+  color: #888888;
+}
+
+.trend-bars,
+.result-table :deep(.el-table__header th) {
+  background: #f7f7f7;
+}
+
+.trend-track {
+  background: #e5e5e5;
+}
+
+.trend-track i {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.skill-group-title {
+  color: #333333;
+}
+
+.skill-group-title::before {
+  background: #2563eb;
+}
+
+.skill-item {
+  border-color: #e5e5e5;
+  background: #ffffff;
+}
+
+.raw-json {
+  border-top-color: #eeeeee;
+}
+
+.raw-json pre {
+  background: #111111;
+  color: #eeeeee;
+}
+
+.typing span {
+  background: #777777;
+}
+
+.background-tip {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.trend-metrics b.positive { color: #15803d; }
+.trend-metrics b.negative { color: #b91c1c; }
+.trend-metrics b.neutral { color: #64748b; }
 </style>

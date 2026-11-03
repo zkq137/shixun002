@@ -8,7 +8,11 @@ import type {
   EmployeeRow,
   NameValue,
   PageResult,
+  PerformanceRecord,
+  PerformanceTrend,
   PositionOption,
+  PotentialModel,
+  PotentialRecord,
   SkillItem,
 } from './types'
 
@@ -50,6 +54,26 @@ export function fetchPositionOptions() {
 /** 按部门统计人数 */
 export function fetchDepartmentStats() {
   return get<NameValue[]>('/employee/stats/department')
+}
+
+/** 某员工的历年绩效 */
+export function fetchPerformanceHistory(employeeId: number) {
+  return get<PerformanceRecord[]>(`/performance/employees/${employeeId}`)
+}
+
+/** 某员工的绩效趋势 */
+export function fetchPerformanceTrend(employeeId: number) {
+  return get<PerformanceTrend>(`/performance/employees/${employeeId}/trend`)
+}
+
+/** 潜力量化模型定义 */
+export function fetchPotentialModel() {
+  return get<PotentialModel>('/potential/model')
+}
+
+/** 某员工的潜力评估 */
+export function fetchPotential(employeeId: number) {
+  return get<PotentialRecord>(`/potential/employees/${employeeId}`)
 }
 
 /** 批量删除 */

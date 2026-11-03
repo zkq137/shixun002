@@ -268,7 +268,7 @@ onMounted(loadBase)
         :labels="result.chart.categories"
         :values="result.chart.series[0]?.data.map((v) => Number(v) || 0) ?? []"
         type="bar"
-        :color="'#409eff'"
+        :color="'#111111'"
       />
       <div v-if="result.chart.series.length > 1" class="stat-label" style="margin-bottom: 12px">
         图中画的是第一个指标「{{ result.chart.series[0]?.name }}」；多维度的其余组合见下表。

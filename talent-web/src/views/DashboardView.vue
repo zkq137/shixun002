@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
 import OverviewTab from './analysis/OverviewTab.vue'
 import PipelineTab from './analysis/PipelineTab.vue'
 import FlowTab from './analysis/FlowTab.vue'
 import ModelTab from './analysis/ModelTab.vue'
 import ReportTab from './analysis/ReportTab.vue'
 import ModuleAssistant from '@/components/ModuleAssistant.vue'
-
-const route = useRoute()
+import { useUrlTab } from '@/composables/useUrlTab'
 
 /** 支持 /dashboard?tab=model 直接打开某个页签，方便分享链接 */
-const TABS = ['pipeline', 'flow', 'model', 'report', 'overview']
-const tabFromUrl = String(route.query.tab ?? '')
-const activeTab = ref(TABS.includes(tabFromUrl) ? tabFromUrl : 'pipeline')
+const activeTab = useUrlTab(
+  ['pipeline', 'flow', 'model', 'report', 'overview', 'assistant'] as const,
+  'pipeline',
+)
+
 const analysisAssistantPrompts = [
   '分析当前人才梯队健康度',
   '按部门生成人数和平均绩效报表',
@@ -46,18 +45,18 @@ const analysisAssistantPrompts = [
       <el-tab-pane label="基础盘点" name="overview">
         <OverviewTab v-if="activeTab === 'overview'" />
       </el-tab-pane>
+      <el-tab-pane label="智能分析助手" name="assistant">
+        <ModuleAssistant
+          module-key="analysis"
+          title="数据分析智能体"
+          :quick-prompts="analysisAssistantPrompts"
+          status-endpoint="/analysis/ai/status"
+          chat-endpoint="/analysis/ai/chat"
+          service-name="分析服务"
+          config-env-prefix="ANALYSIS_DIFY"
+        />
+      </el-tab-pane>
     </el-tabs>
-
-    <ModuleAssistant
-      module-key="analysis"
-      title="数据分析智能体"
-      :quick-prompts="analysisAssistantPrompts"
-      status-endpoint="/analysis/ai/status"
-      chat-endpoint="/analysis/ai/chat"
-      service-name="分析服务"
-      config-env-prefix="ANALYSIS_DIFY"
-      class="analysis-assistant"
-    />
   </div>
 </template>
 
@@ -88,7 +87,4 @@ const analysisAssistantPrompts = [
   overflow: visible;
 }
 
-.analysis-assistant {
-  margin-top: 22px;
-}
 </style>

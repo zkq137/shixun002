@@ -98,31 +98,31 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
     <el-row :gutter="16">
       <el-col :span="5">
         <el-card shadow="hover">
-          <div class="stat-value">{{ data?.totalJoin ?? '-' }}</div>
+          <div class="stat-value text-info">{{ data?.totalJoin ?? '-' }}</div>
           <div class="stat-label">累计入职记录</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover">
-          <div class="stat-value">{{ data?.recentJoinCount ?? '-' }}</div>
+          <div class="stat-value text-success">{{ data?.recentJoinCount ?? '-' }}</div>
           <div class="stat-label">近 12 个月入职</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover">
-          <div class="stat-value">{{ data?.avgAnnualJoin ?? '-' }}</div>
+          <div class="stat-value text-info">{{ data?.avgAnnualJoin ?? '-' }}</div>
           <div class="stat-label">年均入职人数</div>
         </el-card>
       </el-col>
       <el-col :span="5">
         <el-card shadow="hover">
-          <div class="stat-value">{{ data?.leaveCount ?? 0 }}</div>
+          <div class="stat-value text-danger">{{ data?.leaveCount ?? 0 }}</div>
           <div class="stat-label">离职记录</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <div class="stat-value">{{ data?.promoteCount ?? 0 }}</div>
+          <div class="stat-value text-success">{{ data?.promoteCount ?? 0 }}</div>
           <div class="stat-label">晋升记录</div>
         </el-card>
       </el-col>
@@ -201,7 +201,7 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
                 :labels="forecastLabels(series)"
                 :values="forecastValues(series)"
                 type="line"
-                :color="series.type === 'inflow' ? '#409eff' : series.type === 'outflow' ? '#f56c6c' : '#67c23a'"
+                :color="series.type === 'inflow' ? '#2563eb' : series.type === 'outflow' ? '#dc2626' : '#16a34a'"
               />
               <div class="stat-label">方法：{{ series.method }}</div>
             </div>
@@ -223,13 +223,13 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>历年入职人数（人才流入趋势）</template>
-          <MiniChart :labels="yearlyLabels" :values="yearlyValues" type="line" color="#409eff" />
+          <MiniChart :labels="yearlyLabels" :values="yearlyValues" type="line" />
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>近 24 个月入职人数</template>
-          <MiniChart :labels="monthlyLabels" :values="monthlyValues" type="bar" color="#67c23a" />
+          <MiniChart :labels="monthlyLabels" :values="monthlyValues" type="bar" color="#2563eb" />
         </el-card>
       </el-col>
     </el-row>
@@ -238,7 +238,7 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>各司龄段的高风险人数（哪个阶段最容易流失）</template>
-          <MiniChart :labels="riskLabels" :values="riskValues" type="bar" color="#f56c6c" />
+          <MiniChart :labels="riskLabels" :values="riskValues" type="bar" color="#dc2626" />
           <div class="stat-label" style="margin-top: 8px">
             柱越高说明这个司龄段的高风险人员越多，留任措施应该优先投在这里
           </div>
@@ -277,7 +277,7 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
               :percentage="Math.min(100, Number(row.highRiskRate ?? 0) * 5)"
               :format="() => `${row.highRiskRate ?? 0}%`"
               :stroke-width="14"
-              :color="(row.highRiskRate ?? 0) > 1 ? '#f56c6c' : '#67c23a'"
+              :color="(row.highRiskRate ?? 0) > 1 ? '#dc2626' : '#d97706'"
             />
           </template>
         </el-table-column>
@@ -306,16 +306,16 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
 
 .forecast-meta {
   flex-wrap: wrap;
-  color: #7b8496;
+  color: #777777;
   font-size: 12px;
 }
 
 .forecast-series {
   height: 100%;
   padding: 14px;
-  border: 1px solid #e7ecf5;
+  border: 1px solid #e5e5e5;
   border-radius: 10px;
-  background: #fbfcff;
+  background: #fafafa;
 }
 
 .forecast-series-title {
@@ -324,7 +324,7 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
 
 .forecast-total {
   margin-top: 10px;
-  color: #21304d;
+  color: #111111;
   font-size: 26px;
   font-weight: 700;
 }
@@ -332,7 +332,7 @@ const riskValues = computed(() => (data.value?.riskByTenure ?? []).map((item) =>
 .forecast-notes {
   margin: 12px 0 0;
   padding-left: 20px;
-  color: #667085;
+  color: #666666;
   font-size: 12px;
   line-height: 1.8;
 }

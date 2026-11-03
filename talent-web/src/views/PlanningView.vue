@@ -5,9 +5,14 @@ import { EditPen, Refresh, Search, View } from '@element-plus/icons-vue'
 import { evaluatePositionRisks, fetchPlanningDashboard, fetchPositionDetail, fetchPositionRisks, fetchPositions, fetchRiskEmployee, fetchRiskEmployees, fetchSkillCoverage, fetchSuccession, fetchTalentPools, handleRiskEmployee, refreshSuccession, refreshTalentPools, updateKeyPosition } from '@/api/planning'
 import type { PlanningDashboard, PlanningPosition, PositionRisk, RiskEmployee, RiskHandleForm, SkillCoverage, SuccessionCandidate, TalentPool } from '@/api/types'
 import ModuleAssistant from '@/components/ModuleAssistant.vue'
+import { useUrlTab } from '@/composables/useUrlTab'
 
 type PositionKeyFilter = 'all' | 'key' | 'normal'
-const activeTab = ref('dashboard')
+const activeTab = useUrlTab(
+  ['dashboard', 'positions', 'succession', 'pools', 'risks', 'assistant'] as const,
+  'dashboard',
+)
+
 const dashboard = ref<PlanningDashboard | null>(null)
 const dashboardLoading = ref(false)
 const positionLoading = ref(false)
@@ -24,6 +29,9 @@ const positionCandidates = ref<SuccessionCandidate[]>([])
 const positionCoverage = ref<SkillCoverage[]>([])
 const positionDetailLoading = ref(false)
 const positionRefreshLoading = ref<number | null>(null)
+const successionPositionId = ref<number | null>(null)
+const successionLoading = ref(false)
+const successionCandidates = ref<SuccessionCandidate[]>([])
 const talentPools = ref<TalentPool[]>([])
 const riskList = ref<RiskEmployee[]>([])
 const riskTotal = ref(0)
@@ -47,6 +55,7 @@ const planningAssistantPrompts = [
 function valueOf(value?: number | null) { return value ?? 0 }
 function riskTag(level?: string | null): 'success' | 'warning' | 'danger' | 'info' { if (level === '高' || level === '高风险') return 'danger'; if (level === '中' || level === '中风险') return 'warning'; return 'success' }
 function readinessTag(value?: string | null): 'success' | 'warning' | 'danger' | 'info' { if (value === 'READY_NOW') return 'success'; if (value === 'READY_1_YEAR') return 'warning'; if (value === 'READY_2_YEARS') return 'info'; return 'danger' }
+function readinessColor(value: string) { if (value === 'READY_NOW') return '#16a34a'; if (value === 'READY_1_YEAR') return '#2563eb'; if (value === 'READY_2_YEARS') return '#d97706'; return '#dc2626' }
 function readinessLabel(value?: string | null) { return value ? readinessLabels[value] ?? value : '-' }
 function formatDate(value?: string | null) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
 
@@ -55,6 +64,15 @@ async function loadPositions() { positionLoading.value = true; try { positions.v
 async function loadPools() { poolLoading.value = true; try { talentPools.value = await fetchTalentPools() } finally { poolLoading.value = false } }
 async function loadPositionRisks() { positionRiskLoading.value = true; try { positionRisks.value = await fetchPositionRisks() } finally { positionRiskLoading.value = false } }
 async function loadRisks() { riskLoading.value = true; try { const page = await fetchRiskEmployees({ pageNum: riskPageNum.value, pageSize: riskPageSize.value, warningLevel: riskQuery.warningLevel || undefined, handleStatus: riskQuery.handleStatus || undefined, department: riskQuery.department || undefined, keyword: riskQuery.keyword || undefined }); riskList.value = page.records; riskTotal.value = page.total } finally { riskLoading.value = false } }
+async function loadSuccessionCandidates() {
+  if (successionPositionId.value === null) return
+  successionLoading.value = true
+  try {
+    successionCandidates.value = await fetchSuccession(successionPositionId.value, 30)
+  } finally {
+    successionLoading.value = false
+  }
+}
 
 async function openPosition(position: PlanningPosition) {
   selectedPosition.value = position; positionDialogVisible.value = true; positionDetailLoading.value = true
@@ -68,7 +86,14 @@ async function showRiskDetail(row: RiskEmployee) { if (!row.id) return; riskDeta
 function openRiskHandle(row: RiskEmployee) { selectedRisk.value = row; riskForm.handleStatus = row.handleStatus ?? '处理中'; riskForm.handler = row.handler ?? ''; riskForm.remark = row.handleRemark ?? ''; riskHandleVisible.value = true }
 async function saveRiskHandle() { if (!selectedRisk.value?.id || !riskForm.handler.trim()) { ElMessage.warning('请填写处理人'); return }; riskHandleLoading.value = true; try { await handleRiskEmployee(selectedRisk.value.id, { handleStatus: riskForm.handleStatus, handler: riskForm.handler.trim(), remark: riskForm.remark?.trim() }); riskHandleVisible.value = false; ElMessage.success('预警处理结果已保存'); await Promise.all([loadRisks(), loadDashboard()]) } finally { riskHandleLoading.value = false } }
 function searchRisks() { riskPageNum.value = 1; loadRisks() }
-async function loadAll() { await Promise.allSettled([loadDashboard(), loadPositions(), loadPools(), loadRisks(), loadPositionRisks()]) }
+async function loadAll() {
+  await Promise.allSettled([loadDashboard(), loadPositions(), loadPools(), loadRisks(), loadPositionRisks()])
+  const preferred = positions.value.find((item) => item.key) ?? positions.value[0]
+  if (preferred) {
+    successionPositionId.value = preferred.id
+    await loadSuccessionCandidates()
+  }
+}
 onMounted(loadAll)
 </script>
 
@@ -79,7 +104,7 @@ onMounted(loadAll)
     <el-tabs v-model="activeTab" type="card">
       <el-tab-pane label="决策看板" name="dashboard">
         <div v-loading="dashboardLoading">
-          <el-row v-if="dashboard" :gutter="12">
+          <el-row v-if="dashboard" :gutter="12" class="dashboard-stats">
             <el-col v-for="item in [['岗位总数', dashboard.positionCount], ['关键岗位', dashboard.keyPositionCount], ['无继任岗位', dashboard.uncoveredKeyPositionCount], ['立即可继任', dashboard.readyNowCandidateCount], ['人才池缺口', dashboard.totalTalentGap], ['高风险员工', dashboard.highRiskEmployeeCount], ['未处理预警', dashboard.unhandledWarningCount]]" :key="item[0]" :span="3"><el-card shadow="never" style="margin-bottom: 12px"><div class="stat-label">{{ item[0] }}</div><div class="stat-value">{{ valueOf(item[1] as number) }}</div></el-card></el-col>
             <el-col :span="3"><el-card shadow="never" style="margin-bottom: 12px"><div class="stat-label">关键岗位覆盖率</div><div class="stat-value">{{ valueOf(dashboard.keyPositionCoverageRate) }}%</div></el-card></el-col>
           </el-row>
@@ -87,7 +112,7 @@ onMounted(loadAll)
             <el-empty description="暂无看板数据，请确认梯队服务已启动" :image-size="96" />
           </el-card>
           <el-row v-if="dashboard" :gutter="16">
-            <el-col :span="12"><el-card shadow="never"><template #header>候选人准备度分布</template><div v-for="key in ['READY_NOW', 'READY_1_YEAR', 'READY_2_YEARS', 'NOT_READY']" :key="key" class="dist-row"><span class="dist-name">{{ readinessLabel(key) }}</span><el-progress :percentage="valueOf(dashboard.readinessDistribution?.[key])" :show-text="false" style="flex: 1" /><span class="dist-count">{{ valueOf(dashboard.readinessDistribution?.[key]) }} 人</span></div></el-card></el-col>
+            <el-col :span="12"><el-card shadow="never"><template #header>候选人准备度分布</template><div v-for="key in ['READY_NOW', 'READY_1_YEAR', 'READY_2_YEARS', 'NOT_READY']" :key="key" class="dist-row"><span class="dist-name">{{ readinessLabel(key) }}</span><el-progress :percentage="valueOf(dashboard.readinessDistribution?.[key])" :color="readinessColor(key)" :show-text="false" style="flex: 1" /><span class="dist-count">{{ valueOf(dashboard.readinessDistribution?.[key]) }} 人</span></div></el-card></el-col>
             <el-col :span="12"><el-card shadow="never"><template #header>高风险岗位</template><el-table :data="dashboard.highRiskPositions ?? []" stripe max-height="260"><el-table-column prop="positionName" label="岗位" min-width="130" /><el-table-column prop="riskLevel" label="等级" width="80"><template #default="{ row }"><el-tag :type="riskTag(row.riskLevel)">{{ row.riskLevel }}</el-tag></template></el-table-column><el-table-column prop="riskDescription" label="触发原因" min-width="220" /><template #empty><el-empty description="暂无高风险岗位" :image-size="55" /></template></el-table></el-card></el-col>
           </el-row>
           <el-card v-if="dashboard" shadow="never" style="margin-top: 16px"><template #header>各层级人才池缺口</template><el-table :data="dashboard.talentPoolGaps ?? []" stripe><el-table-column prop="level" label="岗位层级" /><el-table-column prop="totalCapacity" label="目标容量" /><el-table-column prop="currentCount" label="当前储备" /><el-table-column prop="gapCount" label="缺口" /><el-table-column label="覆盖率"><template #default="{ row }">{{ valueOf(row.coverageRate) }}%</template></el-table-column><template #empty><el-empty description="暂无人才池统计" :image-size="55" /></template></el-table></el-card>
@@ -97,6 +122,33 @@ onMounted(loadAll)
       <el-tab-pane label="关键岗位" name="positions">
         <el-card shadow="never"><div class="search-bar"><el-input v-model="positionKeyword" clearable placeholder="按岗位名称搜索" style="width: 260px" @keyup.enter="loadPositions" /><el-select v-model="positionKeyFilter" style="width: 150px" @change="loadPositions"><el-option label="全部岗位" value="all" /><el-option label="关键岗位" value="key" /><el-option label="普通岗位" value="normal" /></el-select><el-button type="primary" :icon="Search" @click="loadPositions">查询</el-button></div></el-card>
         <el-card shadow="never" style="margin-top: 16px"><el-table v-loading="positionLoading" :data="positions" stripe border><el-table-column prop="positionName" label="岗位" min-width="150" /><el-table-column prop="positionLevel" label="层级" width="110" /><el-table-column label="关键岗位" width="100"><template #default="{ row }"><el-switch :model-value="row.key" @change="toggleKey(row)" /></template></el-table-column><el-table-column prop="incumbentCount" label="在岗人数" width="95" /><el-table-column prop="successorCount" label="合格继任" width="95" /><el-table-column prop="readyNowCount" label="立即可继任" width="110" /><el-table-column label="风险" width="85"><template #default="{ row }"><el-tag v-if="row.riskLevel" :type="riskTag(row.riskLevel)">{{ row.riskLevel }}</el-tag><span v-else>-</span></template></el-table-column><el-table-column label="操作" width="220" fixed="right"><template #default="{ row }"><el-button link type="primary" :icon="View" @click="openPosition(row)">详情</el-button><el-button link type="primary" :icon="Refresh" :loading="positionRefreshLoading === row.id" @click="refreshPosition(row)">刷新候选</el-button></template></el-table-column><template #empty><el-empty description="暂无岗位数据" /></template></el-table></el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="继任候选" name="succession">
+        <el-card shadow="never">
+          <div class="search-bar">
+            <el-select v-model="successionPositionId" filterable placeholder="选择岗位查看继任候选" style="width: 340px" @change="loadSuccessionCandidates">
+              <el-option v-for="item in positions" :key="item.id" :label="`${item.positionName}${item.key ? ' · 关键岗位' : ''}`" :value="item.id" />
+            </el-select>
+            <el-button type="primary" :icon="Search" :disabled="successionPositionId === null" @click="loadSuccessionCandidates">刷新候选</el-button>
+            <el-button :icon="Refresh" :loading="successionLoading" :disabled="successionPositionId === null" @click="loadSuccessionCandidates">重新计算</el-button>
+          </div>
+        </el-card>
+        <el-card shadow="never" style="margin-top: 16px">
+          <template #header>候选人与准备度</template>
+          <el-table v-loading="successionLoading" :data="successionCandidates" stripe>
+            <el-table-column type="index" label="#" width="55" />
+            <el-table-column prop="employeeName" label="姓名" width="100" />
+            <el-table-column prop="department" label="部门" width="120" />
+            <el-table-column label="综合分" width="90"><template #default="{ row }">{{ valueOf(row.matchScore) }}</template></el-table-column>
+            <el-table-column label="技能匹配" width="110"><template #default="{ row }">{{ valueOf(row.matchedSkillCount) }} / {{ valueOf(row.requiredSkillCount) }}</template></el-table-column>
+            <el-table-column label="准备度" width="120"><template #default="{ row }"><el-tag :type="readinessTag(row.readiness)">{{ readinessLabel(row.readiness) }}</el-tag></template></el-table-column>
+            <el-table-column label="准备周期" width="105"><template #default="{ row }">{{ valueOf(row.preparationMonths) }} 个月</template></el-table-column>
+            <el-table-column prop="recommendationReason" label="推荐理由" min-width="240" />
+            <el-table-column label="缺失技能" min-width="180"><template #default="{ row }">{{ row.missingSkills?.join('、') || '-' }}</template></el-table-column>
+            <template #empty><el-empty description="该岗位暂无继任候选" :image-size="72" /></template>
+          </el-table>
+        </el-card>
       </el-tab-pane>
 
       <el-tab-pane label="人才池" name="pools">
@@ -109,16 +161,17 @@ onMounted(loadAll)
         <el-card shadow="never" style="margin-top: 16px"><template #header>员工流失风险</template><el-table v-loading="riskLoading" :data="riskList" stripe border><el-table-column prop="employeeName" label="姓名" width="100" /><el-table-column prop="empNo" label="工号" width="120" /><el-table-column prop="department" label="部门" width="130" /><el-table-column prop="currentPosition" label="当前岗位" min-width="130" /><el-table-column prop="riskScore" label="风险分" width="90" /><el-table-column label="等级" width="90"><template #default="{ row }"><el-tag :type="riskTag(row.warningLevel)">{{ row.warningLevel ?? '-' }}</el-tag></template></el-table-column><el-table-column prop="handleStatus" label="处理状态" width="105" /><el-table-column label="操作" width="170" fixed="right"><template #default="{ row }"><el-button link type="primary" :icon="View" @click="showRiskDetail(row)">详情</el-button><el-button link type="primary" :icon="EditPen" @click="openRiskHandle(row)">处理</el-button></template></el-table-column><template #empty><el-empty description="暂无流失风险预警" /></template></el-table><el-pagination v-if="riskTotal > 0" v-model:current-page="riskPageNum" v-model:page-size="riskPageSize" style="margin-top: 16px; justify-content: flex-end" layout="total, sizes, prev, pager, next" :total="riskTotal" @current-change="loadRisks" @size-change="searchRisks" /></el-card>
         <el-card shadow="never" style="margin-top: 16px"><template #header><div style="display: flex; align-items: center; justify-content: space-between"><span>岗位断层风险</span><el-button type="primary" plain :icon="Refresh" :loading="positionRiskLoading" @click="evaluateRisks">重新评估</el-button></div></template><el-table v-loading="positionRiskLoading" :data="positionRisks" stripe border><el-table-column prop="positionName" label="岗位" min-width="140" /><el-table-column prop="positionLevel" label="层级" width="100" /><el-table-column label="关键岗位" width="100"><template #default="{ row }">{{ row.key ? '是' : '否' }}</template></el-table-column><el-table-column label="风险" width="85"><template #default="{ row }"><el-tag :type="riskTag(row.riskLevel)">{{ row.riskLevel }}</el-tag></template></el-table-column><el-table-column prop="riskDescription" label="触发原因" min-width="260" /><el-table-column prop="incumbentCount" label="在岗" width="70" /><el-table-column prop="successorCount" label="继任" width="70" /><el-table-column prop="readyNowCount" label="立即继任" width="95" /><el-table-column prop="highRiskEmployeeCount" label="高流失" width="85" /><el-table-column label="技能覆盖" width="100"><template #default="{ row }">{{ valueOf(row.skillCoverageRate) }}%</template></el-table-column><el-table-column label="评估时间" min-width="155"><template #default="{ row }">{{ formatDate(row.checkedAt) }}</template></el-table-column><template #empty><el-empty description="暂无岗位风险记录，请先评估" /></template></el-table></el-card>
       </el-tab-pane>
+      <el-tab-pane label="规划助手" name="assistant">
+        <ModuleAssistant
+          module-key="planning"
+          title="梯队规划智能体"
+          subtitle="结合当前岗位、继任候选、人才池与风险数据，提供可解释的梯队建设建议。"
+          :quick-prompts="planningAssistantPrompts"
+          status-endpoint="/planning/ai/status"
+          chat-endpoint="/planning/ai/chat"
+        />
+      </el-tab-pane>
     </el-tabs>
-
-    <ModuleAssistant
-      module-key="planning"
-      title="梯队规划智能体"
-      subtitle="结合当前岗位、继任候选、人才池与风险数据，提供可解释的梯队建设建议。"
-      :quick-prompts="planningAssistantPrompts"
-      status-endpoint="/planning/ai/status"
-      chat-endpoint="/planning/ai/chat"
-    />
 
     <el-dialog v-model="positionDialogVisible" :title="selectedPosition ? `${selectedPosition.positionName} · 岗位画像` : '岗位画像'" width="1100px"><div v-loading="positionDetailLoading"><el-descriptions v-if="selectedPosition" :column="4" border><el-descriptions-item label="岗位层级">{{ selectedPosition.positionLevel ?? '-' }}</el-descriptions-item><el-descriptions-item label="在岗人数">{{ valueOf(selectedPosition.incumbentCount) }}</el-descriptions-item><el-descriptions-item label="合格继任">{{ valueOf(selectedPosition.successorCount) }}</el-descriptions-item><el-descriptions-item label="立即可继任">{{ valueOf(selectedPosition.readyNowCount) }}</el-descriptions-item><el-descriptions-item label="继任覆盖率">{{ valueOf(selectedPosition.successionCoverageRate) }}%</el-descriptions-item><el-descriptions-item label="岗位风险"><el-tag v-if="selectedPosition.riskLevel" :type="riskTag(selectedPosition.riskLevel)">{{ selectedPosition.riskLevel }}</el-tag><span v-else>-</span></el-descriptions-item><el-descriptions-item label="风险原因" :span="2">{{ selectedPosition.riskDescription || '-' }}</el-descriptions-item></el-descriptions><h3 style="font-size: 15px; margin: 18px 0 10px">技能覆盖</h3><el-table :data="positionCoverage" stripe max-height="220"><el-table-column prop="skillName" label="技能" /><el-table-column prop="requiredCount" label="要求人数" /><el-table-column prop="qualifiedCount" label="具备人数" /><el-table-column prop="gapCount" label="缺口" /><el-table-column label="覆盖率"><template #default="{ row }">{{ valueOf(row.coverageRate) }}%</template></el-table-column><template #empty><el-empty description="岗位未配置技能要求" :image-size="50" /></template></el-table><h3 style="font-size: 15px; margin: 18px 0 10px">继任候选</h3><el-table :data="positionCandidates" stripe max-height="340"><el-table-column type="expand"><template #default="{ row }"><el-descriptions :column="2" border><el-descriptions-item label="技能满足">{{ valueOf(row.matchedSkillCount) }} / {{ valueOf(row.requiredSkillCount) }}</el-descriptions-item><el-descriptions-item label="预计准备周期">{{ valueOf(row.preparationMonths) }} 个月</el-descriptions-item><el-descriptions-item label="推荐理由" :span="2">{{ row.recommendationReason || '-' }}</el-descriptions-item><el-descriptions-item label="数据完整性" :span="2">{{ row.dataWarnings?.join('；') || '数据完整' }}</el-descriptions-item></el-descriptions></template></el-table-column><el-table-column prop="employeeName" label="姓名" width="90" /><el-table-column prop="department" label="部门" width="110" /><el-table-column label="综合分" width="90"><template #default="{ row }">{{ valueOf(row.matchScore) }}</template></el-table-column><el-table-column label="评分明细" min-width="280"><template #default="{ row }">技能 {{ valueOf(row.skillScore) }} / 绩效 {{ valueOf(row.performanceScore) }} / 潜力 {{ valueOf(row.potentialScore) }} / 经验 {{ valueOf(row.experienceScore) }}</template></el-table-column><el-table-column label="准备度" width="120"><template #default="{ row }"><el-tag :type="readinessTag(row.readiness)">{{ readinessLabel(row.readiness) }}</el-tag></template></el-table-column><el-table-column label="缺失技能" min-width="180"><template #default="{ row }">{{ row.missingSkills?.join('、') || '-' }}</template></el-table-column><template #empty><el-empty description="暂无继任候选" :image-size="50" /></template></el-table></div></el-dialog>
     <el-dialog v-model="riskDetailVisible" title="流失预警详情" width="620px"><el-descriptions v-loading="riskDetailLoading" v-if="selectedRisk" :column="2" border><el-descriptions-item label="姓名">{{ selectedRisk.employeeName }}</el-descriptions-item><el-descriptions-item label="工号">{{ selectedRisk.empNo }}</el-descriptions-item><el-descriptions-item label="部门">{{ selectedRisk.department }}</el-descriptions-item><el-descriptions-item label="岗位">{{ selectedRisk.currentPosition }}</el-descriptions-item><el-descriptions-item label="风险分">{{ selectedRisk.riskScore }}</el-descriptions-item><el-descriptions-item label="预警等级">{{ selectedRisk.warningLevel }}</el-descriptions-item><el-descriptions-item label="预警时间">{{ formatDate(selectedRisk.warningTime) }}</el-descriptions-item><el-descriptions-item label="处理时间">{{ formatDate(selectedRisk.handledAt) }}</el-descriptions-item><el-descriptions-item label="处理状态">{{ selectedRisk.handleStatus }}</el-descriptions-item><el-descriptions-item label="处理人">{{ selectedRisk.handler || '-' }}</el-descriptions-item><el-descriptions-item label="处理备注" :span="2">{{ selectedRisk.handleRemark || '-' }}</el-descriptions-item></el-descriptions></el-dialog>
@@ -129,5 +182,25 @@ onMounted(loadAll)
 <style scoped>
 :deep(.el-dialog) {
   max-width: 94vw;
+}
+
+.dashboard-stats :deep(.el-col:nth-child(1) .stat-value),
+.dashboard-stats :deep(.el-col:nth-child(2) .stat-value),
+.dashboard-stats :deep(.el-col:nth-child(4) .stat-value) {
+  color: #1d4ed8;
+}
+
+.dashboard-stats :deep(.el-col:nth-child(3) .stat-value),
+.dashboard-stats :deep(.el-col:nth-child(6) .stat-value),
+.dashboard-stats :deep(.el-col:nth-child(7) .stat-value) {
+  color: #b91c1c;
+}
+
+.dashboard-stats :deep(.el-col:nth-child(5) .stat-value) {
+  color: #b45309;
+}
+
+.dashboard-stats :deep(.el-col:nth-child(8) .stat-value) {
+  color: #15803d;
 }
 </style>

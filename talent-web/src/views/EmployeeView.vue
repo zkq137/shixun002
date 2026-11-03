@@ -14,6 +14,11 @@ import {
   UploadFilled,
 } from '@element-plus/icons-vue'
 import ModuleAssistant from '@/components/ModuleAssistant.vue'
+import OrgOverviewTab from './employee/OrgOverviewTab.vue'
+import PerformanceTab from './employee/PerformanceTab.vue'
+import PotentialTab from './employee/PotentialTab.vue'
+import TalentStructureTab from './employee/TalentStructureTab.vue'
+import { useUrlTab } from '@/composables/useUrlTab'
 import {
   IMPORT_TEMPLATE_URL,
   IMPORT_URL,
@@ -56,6 +61,10 @@ const employeeAssistantPrompts = [
   '查看龙秀英的绩效趋势',
   '查看员工龙秀英会的技能',
 ]
+const activeTab = useUrlTab(
+  ['roster', 'org', 'performance', 'potential', 'talent', 'assistant'] as const,
+  'roster',
+)
 
 const query = reactive({
   pageNum: 1,
@@ -376,6 +385,13 @@ function talentType(tag?: string | null): 'success' | 'warning' | 'danger' | 'in
   return 'success'
 }
 
+function perfTone(score?: number | null) {
+  if (score === null || score === undefined) return ''
+  if (score >= 4.5) return 'value-positive'
+  if (score >= 3.5) return 'text-info'
+  return 'value-warning'
+}
+
 onMounted(async () => {
   const [deptList, positionList] = await Promise.all([
     fetchDepartments(),
@@ -389,12 +405,14 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h2 class="page-title">员工档案</h2>
+    <h2 id="employee-list" class="page-title">员工档案</h2>
     <p class="page-tip">
       数据来自 emp_employee 等表。支持单条增删改查、勾选后批量修改/删除、Excel 批量导入导出，
       点「技能」可以给员工配技能树里的技能。
     </p>
 
+    <el-tabs v-model="activeTab" class="module-tabs">
+      <el-tab-pane label="员工名册" name="roster">
     <el-card shadow="never">
       <div class="toolbar-row">
         <el-input
@@ -453,7 +471,11 @@ onMounted(async () => {
         <el-table-column prop="positionName" label="岗位" min-width="140" />
         <el-table-column prop="jobRank" label="职级" width="80" />
         <el-table-column prop="tenureYears" label="司龄" width="70" />
-        <el-table-column prop="perfScore" label="绩效" width="70" />
+        <el-table-column prop="perfScore" label="绩效" width="70">
+          <template #default="{ row }">
+            <span class="number-emphasis" :class="perfTone(row.perfScore)">{{ row.perfScore ?? '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="potentialLevel" label="潜力" width="115" />
         <el-table-column label="流失风险" width="90">
           <template #default="{ row }">
@@ -502,12 +524,34 @@ onMounted(async () => {
       />
     </el-card>
 
-    <ModuleAssistant
-      module-key="employee"
-      title="员工档案智能助手"
-      :quick-prompts="employeeAssistantPrompts"
-      class="employee-assistant"
-    />
+      </el-tab-pane>
+
+      <el-tab-pane label="组织概览" name="org" lazy>
+        <OrgOverviewTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="绩效档案" name="performance" lazy>
+        <PerformanceTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="潜力评估" name="potential" lazy>
+        <PotentialTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="人才结构" name="talent" lazy>
+        <TalentStructureTab />
+      </el-tab-pane>
+
+      <el-tab-pane label="智能助手" name="assistant" lazy>
+        <ModuleAssistant
+          id="assistant-employee"
+          module-key="employee"
+          title="员工档案智能助手"
+          :quick-prompts="employeeAssistantPrompts"
+          class="employee-assistant"
+        />
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" size="480px" :title="detail ? detail.name : '员工详情'">

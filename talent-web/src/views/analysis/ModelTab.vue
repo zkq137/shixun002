@@ -153,25 +153,25 @@ onMounted(() => {
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <div class="stat-value" style="color: #67c23a">{{ effect?.successRuns ?? '-' }}</div>
+          <div class="stat-value text-success">{{ effect?.successRuns ?? '-' }}</div>
           <div class="stat-label">成功</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <div class="stat-value" style="color: #f56c6c">{{ effect?.failedRuns ?? '-' }}</div>
+          <div class="stat-value text-danger">{{ effect?.failedRuns ?? '-' }}</div>
           <div class="stat-label">失败</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <div class="stat-value">{{ effect?.successRate ?? '-' }}%</div>
+          <div class="stat-value text-success">{{ effect?.successRate ?? '-' }}%</div>
           <div class="stat-label">成功率</div>
         </el-card>
       </el-col>
       <el-col :span="4">
         <el-card shadow="hover">
-          <div class="stat-value">{{ effect?.avgAuc ?? '-' }}</div>
+          <div class="stat-value text-info">{{ effect?.avgAuc ?? '-' }}</div>
           <div class="stat-label">平均 AUC</div>
         </el-card>
       </el-col>
@@ -279,13 +279,13 @@ onMounted(() => {
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>AUC 走势（版本迭代效果）</template>
-          <MiniChart :labels="aucLabels" :values="aucValues" type="line" color="#67c23a" />
+          <MiniChart :labels="aucLabels" :values="aucValues" type="line" />
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card shadow="never">
           <template #header>训练耗时走势（秒）</template>
-          <MiniChart :labels="durationLabels" :values="durationValues" type="bar" color="#e6a23c" />
+          <MiniChart :labels="durationLabels" :values="durationValues" type="bar" color="#d97706" />
         </el-card>
       </el-col>
     </el-row>
@@ -416,7 +416,7 @@ onMounted(() => {
 .json-block {
   margin: 0;
   padding: 8px;
-  background: #f5f7fa;
+  background: #f5f5f5;
   border-radius: 4px;
   font-size: 12px;
   line-height: 1.6;
@@ -425,7 +425,7 @@ onMounted(() => {
 }
 
 .prediction-score {
-  color: #2f5eea;
+  color: #111111;
   font-size: 28px;
   font-weight: 700;
 }

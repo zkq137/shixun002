@@ -1,17 +1,40 @@
 # Dify 智能体工作流
 
-下表中的 YAML 用于在 Dify 里搭建员工档案与晋升决策智能体：
+下表中的 YAML 用于在 Dify 里搭建人才智能体：
 
 | 文件 | 用途 |
 |---|---|
-| `talent-employee-agent.yml` | Dify Chatflow（工作流）DSL，可直接导入 |
+| `talent-employee-agent.yml` | 员工档案智能体，后端注入只读员工上下文 |
+| `talent-analysis-agent.yml` | 数据分析与报告智能体，后端注入只读分析上下文 |
+| `talent-planning-agent.yml` | 梯队规划智能体，后端注入只读规划上下文 |
 | `talent-promotion-agent.yml` | Dify Chatflow（工作流）DSL，综合晋升候选池、梯队继任评估和技能体系数据 |
+| `talent-training-agent.yml` | 智能培训推荐智能体，后端注入员工培训画像、岗位必修、技能缺口与培训效果 |
 | `talent-employee-openapi.yml` | 后端 API 的 OpenAPI 3.0 定义，可导入为 Dify 自定义工具 |
 
-数据分析与报告模块使用独立的 Dify 应用，配置方式见
-[数据分析智能体使用说明.md](./数据分析智能体使用说明.md)。
+当前员工、分析、规划、晋升、培训五条链路都采用 **后端注入上下文** 模式。浏览器只访问本地
+网关，业务服务读取本地数据库并把裁剪后的只读快照发给 Dify Cloud；Dify 不再回调本地
+接口，因此不需要公网 IP、端口映射、隧道或 `base_url`。
 
-## 一、工作流是怎么工作的
+```text
+浏览器 → 本地网关 → 业务服务 → Dify Cloud（仅出站 HTTPS）
+                         └→ 本地数据库与规则计算
+```
+
+| 应用 | Start 输入变量 | 数据来源 |
+|---|---|---|
+| 员工档案 | `query`、`employee_context` | 员工档案、绩效、潜力、技能、部门与岗位 |
+| 数据分析 | `query`、`analysis_context` | 看板、梯队健康度、流动趋势、预测、模型与报表 |
+| 梯队规划 | `query`、`planning_context` | 岗位、继任、技能覆盖与规划规则 |
+| 晋升决策 | `query`、`promotion_context` | 晋升候选池、继任、技能覆盖与规则评分 |
+| 智能培训 | `query`、`training_context` | 员工培训画像、岗位必修、已完成培训、技能缺口、学习路径与课程效果 |
+
+各模块工作流只保留「开始 → LLM → 答案」三个节点，工作流环境变量为空。Dify 仅负责
+根据后端提供的证据生成解释、建议和风险提示，不执行新增、修改、删除、导入或模型训练。
+
+> 下文「旧版 HTTP Request 模式」及 OpenAPI/Excel 章节仅保留作历史排错参考，不应再按
+> 其中的 `base_url`、SSRF 放行或公网隧道步骤部署员工/分析工作流。
+
+## 一、旧版 HTTP Request 模式（已废弃）
 
 ```
 用户输入
@@ -234,17 +257,15 @@ Chatflow 应用，以及工作流最后是否连接到 Answer 节点。
 | 现象 | 处理 |
 |---|---|
 | 导入 DSL 报版本错误 | 修改 YAML 顶部的 `version` 为实例支持版本 |
-| 工作流返回连接失败 | 检查 `base_url`，Docker 部署时不能用 `127.0.0.1` |
 | LLM 节点报模型不存在 | 换成你 Dify 里已配置的模型 |
-| 规划结果是自然语言而不是 JSON | 模型能力不足或温度过高；换模型、把温度降到 0.2 以下 |
-| 删除操作没执行 | 设计如此：需要用户明确说「确认删除」 |
 | 绩效趋势为空 | 该员工只有单年数据，至少录入两个年份 |
-| 潜力接口 404 | 员工服务需要重启加载新 Controller，网关需要重启加载新路由 |
 | 前端提示“尚未连接 Dify” | 在启动员工服务的终端设置 `DIFY_BASE_URL`、`DIFY_API_KEY`，然后重启员工服务 |
 | 前端提示 HTTP 401 | Dify API Key 错误或不是该应用的密钥，重新复制应用 API Key |
 | 错误中同时出现 `[models]` 和 `Authentication Fails` | 这不是应用 API Key 的问题；到 Dify「设置 → 模型供应商」更换模型自己的 API Key |
-| 工作流调用后端超时 | 在 Dify 容器里测试 `base_url`，并确认 SSRF 代理已放行 Windows 主机地址 |
-| Dify Cloud 返回 `Run failed: Request failed with status code 502` | 云端访问不到本机 `base_url`；用公网隧道/反向代理暴露 `9090` 后更新工作流环境变量并重新发布 |
+| Start 节点缺少 `employee_context` / `analysis_context` / `training_context` | 云端仍是旧 DSL；重新导入并发布对应的新版 YAML，不需要新增环境变量 |
+| Dify 返回 502，或日志出现 `host.docker.internal` | 云端仍在执行旧 HTTP Request 节点；导入新版出站-only DSL 后重新发布 |
+| 回答总是说没有数据 | 确认后端调用 Dify 时携带了对应上下文变量，并检查员工/分析服务日志中的上下文构建异常 |
+| 要求新增、修改、删除或训练但没有执行 | 当前员工与分析助手是只读分析链路；写操作必须走现有管理页面或后端受控接口 |
 
 ## 十、晋升决策工作流（talent-promotion-agent.yml）
 
@@ -352,3 +373,46 @@ Cloud；若数据不能出内网，应改用自建 Dify。
 按员工姓名提问（例如「查看龙秀英的绩效趋势」）时，后端会先调用
 `/api/employee/referenced` 解析员工 ID，再注入员工档案、历年绩效和趋势。若数据集中
 只有单年度绩效，模型应明确说明“仅有该年度数据，无法判断多年趋势”，而不是回答没有员工数据。
+
+## 十一、智能培训推荐工作流（talent-training-agent.yml）
+
+该 Chatflow 同样采用「后端注入上下文」模式。培训服务会在本地读取员工培训画像、
+岗位必备课程、已完成培训、技能缺口、学习路径模板和课程效果，再把裁剪后的
+`training_context` 发送给 Dify。Dify 不回调本地网关。
+
+   用户输入
+     → 培训服务解析员工姓名/工号或岗位名称
+     → 本地计算岗位必修 − 已完成培训
+     → 后端 POST Dify /v1/chat-messages（携带 training_context）
+     → Dify LLM 生成学习优先级与分阶段计划
+     → Answer
+
+导入 `talent-training-agent.yml` 后：
+
+> 节点 ID 和 `value_selector` 只能使用字母、数字、下划线。不要改成带连字符的 ID，
+> 否则 Dify 会把 `{{#training_start.query#}}` 原样传给模型，前端会收到未解析模板。
+> 若应用已经导入过旧版本，需要重新导入本文件并发布，现有 API Key 可以继续使用。
+
+1. 工作流环境变量应为空，不需要 `base_url`。
+2. Start 节点应包含 `query` 和 `training_context` 两个输入变量。
+3. 图中只有「开始 → LLM → 答案」三个节点，不应出现 HTTP 请求节点。
+4. LLM 节点默认使用 `DeepSeek / deepseek-v4-flash`，可换成当前实例已配置的模型。
+5. 在启动培训服务前设置应用密钥并重启：
+
+    $env:TRAINING_DIFY_BASE_URL = "https://api.dify.ai"
+    $env:TRAINING_DIFY_API_KEY = "app-培训应用API密钥"
+
+6. 验证配置与对话接口：
+
+    Invoke-RestMethod http://127.0.0.1:9090/api/training/ai/status
+
+7. 发布应用后在前端「智能培训」页面试问：
+
+    查看龙秀英的培训推荐和技能缺口
+    市场经理岗位需要哪些必备培训
+    为研发中心员工制定分阶段学习路径
+    分析培训参与率和通过率最高的课程
+
+个人推荐只使用 `trainingProfiles.trainingPlan.recommendedCourses`，不会重复推荐
+`completedCourses`。岗位级要求来自 `positionTrainingRequirements`，组织级课程效果
+来自 `trainingEffects`，两者不能混作个人完成情况或个人绩效。

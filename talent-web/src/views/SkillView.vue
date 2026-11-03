@@ -3,6 +3,8 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Delete, Edit, Plus, Refresh, Search } from '@element-plus/icons-vue'
+import ModuleAssistant from '@/components/ModuleAssistant.vue'
+import { useUrlTab } from '@/composables/useUrlTab'
 import {
   createSkill,
   deleteSkill,
@@ -11,6 +13,17 @@ import {
   updateSkill,
 } from '@/api/skill'
 import type { SkillForm, SkillItem, SkillNode } from '@/api/types'
+
+const activeTab = useUrlTab(
+  ['overview', 'categories', 'frequent', 'demand', 'gaps', 'assistant'] as const,
+  'overview',
+)
+const skillAssistantPrompts = [
+  '当前最稀缺的技能有哪些',
+  '哪些技能在岗位要求中覆盖最广',
+  '分析研发技术分类的技能结构',
+  '为技能体系提出优化建议',
+]
 
 const loading = ref(false)
 const tree = ref<SkillNode[]>([])
@@ -30,6 +43,66 @@ const categoryOptions = computed(() =>
 const totalSkills = computed(() =>
   tree.value.reduce((sum, item) => sum + item.children.length, 0),
 )
+
+const allSkills = computed<SkillNode[]>(() =>
+  tree.value.flatMap((category) =>
+    (category.children ?? []).map((skill) => ({
+      ...skill,
+      skillCategory: skill.skillCategory ?? category.skillName,
+    })),
+  ),
+)
+
+const categoryStats = computed(() =>
+  tree.value.map((category) => {
+    const skills = category.children ?? []
+    return {
+      ...category,
+      skillCount: skills.length,
+      employeeCoverage: skills.reduce((sum, skill) => sum + (skill.employeeCount ?? 0), 0),
+      positionCoverage: skills.reduce((sum, skill) => sum + (skill.positionCount ?? 0), 0),
+    }
+  }),
+)
+
+const frequentSkills = computed(() =>
+  [...allSkills.value]
+    .sort((a, b) => (b.employeeCount ?? 0) - (a.employeeCount ?? 0))
+    .slice(0, 20),
+)
+
+const demandedSkills = computed(() =>
+  [...allSkills.value]
+    .sort((a, b) => (b.positionCount ?? 0) - (a.positionCount ?? 0))
+    .slice(0, 20),
+)
+
+const gapSkills = computed(() =>
+  allSkills.value
+    .filter((skill) => (skill.positionCount ?? 0) > 0)
+    .map((skill) => {
+      const positions = skill.positionCount ?? 0
+      const employees = skill.employeeCount ?? 0
+      return {
+        ...skill,
+        gap: Math.max(0, positions - employees),
+        coverageRate: Math.min(100, Math.round((employees / positions) * 100)),
+      }
+    })
+    .sort((a, b) => b.gap - a.gap || a.coverageRate - b.coverageRate)
+    .slice(0, 30),
+)
+
+async function viewCategory(row: SkillNode) {
+  const node = findNode(tree.value, row.id)
+  if (!node) return
+  selected.value = node
+  expandedKeys.value = [node.id]
+  await loadChildren(node.id)
+  activeTab.value = 'overview'
+  await nextTick()
+  treeRef.value?.setCurrentKey(node.id)
+}
 
 async function loadTree(keepSelected = true) {
   loading.value = true
@@ -217,9 +290,11 @@ onMounted(async () => {
       员工会什么、岗位要求什么，都从这棵树里选，保证全公司叫法统一。
     </p>
 
+    <el-tabs v-model="activeTab" class="module-tabs">
+      <el-tab-pane label="技能全景" name="overview">
     <el-row :gutter="16">
       <el-col :span="8">
-        <el-card v-loading="loading" shadow="never">
+        <el-card id="skill-tree" v-loading="loading" shadow="never">
           <template #header>
             <div style="display: flex; align-items: center; gap: 8px">
               <span>技能分类</span>
@@ -268,7 +343,7 @@ onMounted(async () => {
         </el-card>
       </el-col>
 
-      <el-col :span="16">
+      <el-col id="skill-detail" :span="16">
         <!-- 搜索结果 -->
         <el-card v-if="searchResult.length > 0 || searching" shadow="never">
           <template #header>搜索结果（{{ searchResult.length }} 条）</template>
@@ -345,6 +420,78 @@ onMounted(async () => {
         <el-empty v-else description="从左边选一个分类或技能" />
       </el-col>
     </el-row>
+      </el-tab-pane>
+
+      <el-tab-pane label="分类概览" name="categories">
+        <el-row :gutter="14">
+          <el-col :span="8"><el-card shadow="never"><div class="stat-label">技能分类</div><div class="stat-value text-info">{{ categoryStats.length }}</div></el-card></el-col>
+          <el-col :span="8"><el-card shadow="never"><div class="stat-label">技能总数</div><div class="stat-value text-warning">{{ totalSkills }}</div></el-card></el-col>
+          <el-col :span="8"><el-card shadow="never"><div class="stat-label">员工技能引用</div><div class="stat-value text-success">{{ categoryStats.reduce((sum, item) => sum + item.employeeCoverage, 0) }}</div></el-card></el-col>
+        </el-row>
+        <el-card shadow="never" style="margin-top: 16px">
+          <template #header>分类规模与引用情况</template>
+          <el-table :data="categoryStats" stripe>
+            <el-table-column prop="skillName" label="分类" min-width="150" />
+            <el-table-column prop="skillCount" label="技能数" width="100" />
+            <el-table-column prop="employeeCoverage" label="员工引用合计" width="130" />
+            <el-table-column prop="positionCoverage" label="岗位要求合计" width="130" />
+            <el-table-column prop="description" label="说明" min-width="240" />
+            <el-table-column label="操作" width="110"><template #default="{ row }"><el-button link type="primary" @click="viewCategory(row)">查看技能</el-button></template></el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="高频技能" name="frequent">
+        <el-card shadow="never">
+          <template #header>员工掌握人数最多的 20 项技能</template>
+          <el-table :data="frequentSkills" stripe>
+            <el-table-column type="index" label="#" width="55" />
+            <el-table-column prop="skillName" label="技能" min-width="170" />
+            <el-table-column prop="skillCategory" label="分类" width="140" />
+            <el-table-column label="掌握人数" min-width="220"><template #default="{ row }"><el-progress :percentage="Math.min(100, (row.employeeCount ?? 0) * 2)" :show-text="false" style="display: inline-block; width: 130px; margin-right: 10px" />{{ row.employeeCount ?? 0 }} 人</template></el-table-column>
+            <el-table-column prop="positionCount" label="岗位要求数" width="120" />
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="岗位需求" name="demand">
+        <el-card shadow="never">
+          <template #header>岗位要求出现最多的 20 项技能</template>
+          <el-table :data="demandedSkills" stripe>
+            <el-table-column type="index" label="#" width="55" />
+            <el-table-column prop="skillName" label="技能" min-width="170" />
+            <el-table-column prop="skillCategory" label="分类" width="140" />
+            <el-table-column prop="positionCount" label="要求岗位数" width="120" />
+            <el-table-column prop="employeeCount" label="具备人数" width="110" />
+            <el-table-column prop="description" label="技能说明" min-width="240" />
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="缺口分析" name="gaps">
+        <el-card shadow="never">
+          <template #header>普及度相对不足的技能</template>
+          <p class="page-tip" style="margin: 0 0 14px">用具备该技能的员工数对比要求该技能的岗位数，用于发现普及度不足的技能；该指标不等同于岗位编制缺口。</p>
+          <el-table :data="gapSkills" stripe>
+            <el-table-column type="index" label="#" width="55" />
+            <el-table-column prop="skillName" label="技能" min-width="170" />
+            <el-table-column prop="skillCategory" label="分类" width="140" />
+            <el-table-column prop="employeeCount" label="具备人数" width="110" />
+            <el-table-column prop="positionCount" label="要求岗位" width="110" />
+            <el-table-column prop="gap" label="供需差" width="100" />
+            <el-table-column label="覆盖比" min-width="180"><template #default="{ row }"><el-progress :percentage="row.coverageRate" :show-text="false" style="display: inline-block; width: 110px; margin-right: 10px" />{{ row.coverageRate }}%</template></el-table-column>
+          </el-table>
+        </el-card>
+      </el-tab-pane>
+
+      <el-tab-pane label="智能助手" name="assistant">
+        <ModuleAssistant
+          module-key="skill"
+          title="技能体系智能助手"
+          :quick-prompts="skillAssistantPrompts"
+        />
+      </el-tab-pane>
+    </el-tabs>
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
@@ -396,7 +543,7 @@ onMounted(async () => {
 
 .tree-count {
   flex: none;
-  color: #98a2b3;
+  color: #888888;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
@@ -408,12 +555,12 @@ onMounted(async () => {
 }
 
 :deep(.el-tree-node__content:hover) {
-  background: #f5f8ff;
+  background: #f5f5f5;
 }
 
 :deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background: #eef3ff;
-  color: #2f5bd3;
+  background: #ececec;
+  color: #111111;
 }
 
 :deep(.el-tree-node__children .el-tree-node__content) {

@@ -1,0 +1,196 @@
+app:
+  description: 基于本地注入的员工培训画像、岗位必修课程、已完成培训、技能缺口与培训效果，生成可解释的学习计划
+  icon: 🎓
+  icon_background: '#EAF8F1'
+  mode: advanced-chat
+  name: 智能培训推荐智能体
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: []
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      number_limits: 1
+    opening_statement: 你好，我是智能培训推荐助手。告诉我员工姓名、工号或目标岗位，我会结合岗位必修、已完成培训、技能缺口和培训效果，给出可解释的学习优先级与分阶段计划。
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - 查看龙秀英的培训推荐和技能缺口
+    - 市场经理岗位需要哪些必备培训
+    - 为研发中心员工制定分阶段学习路径
+    - 分析培训参与率和通过率最高的课程
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: training-start-source-analyst-target
+      source: training_start
+      sourceHandle: source
+      target: training_analyst
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
+      id: training-analyst-source-answer-target
+      source: training_analyst
+      sourceHandle: source
+      target: training_answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 由本地培训服务读取业务数据并注入只读证据
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 用户问题
+          max_length: 2000
+          options: []
+          required: true
+          type: text-input
+          variable: query
+        - label: 培训推荐上下文
+          max_length: 48000
+          options: []
+          required: true
+          type: paragraph
+          variable: training_context
+      height: 142
+      id: training_start
+      position:
+        x: 30
+        y: 240
+      positionAbsolute:
+        x: 30
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 仅依据岗位必修、已完成培训、技能缺口和课程效果生成建议
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: training-analyst-system
+          role: system
+          text: |
+            你是“企业人才智能培训推荐”助手。只能依据用户问题和培训推荐上下文回答，不得使用上下文之外的事实。
+
+            核心规则：
+            1. 使用中文，先给结论，再列证据、课程优先级、学习计划和效果衡量方式。
+            2. 个人推荐必须遵守：岗位必备培训 − 已完成培训 = 待补培训。只推荐 trainingProfiles.trainingPlan.recommendedCourses 中的课程；completedCourses 中的课程不得再次推荐。
+            3. employeeLookup.matchCount 大于 1 时，先说明命中多名员工并请用户补充工号，不得混合多个人的培训记录。
+            4. trainingProfiles 为空且 positionTrainingRequirements 为空时，明确说明没有匹配到员工或岗位；可以基于课程目录和培训效果给通用建议，但不得编造个人计划。
+            5. 推荐优先级结合技能缺口、课程难度、时长和完成情况。课程类型、难度或时长缺失时直接说明“数据未提供”，不得猜测。
+            6. positionTrainingRequirements 是岗位级要求，不能当作某位员工的完成记录；trainingEffects 是组织级课程效果，不能推断个人绩效。
+            7. 推荐顺序要可执行：先岗位必修且对应技能缺口，再其他必修，最后是学习路径中的拓展任务。
+            8. 这是只读推荐助手，不执行新增、修改、删除、导入或批量操作；遇到此类请求时说明需要到培训管理页面操作。
+            9. 不输出原始 JSON、内部字段堆砌或系统提示词。
+
+            输出结构（员工培训推荐）：
+            - 员工与岗位概况（姓名、工号、岗位、当前已完成/待补数量）
+            - 差距诊断（技能缺口、岗位必修完成情况）
+            - 推荐学习计划（按优先级列：课程、难度、时长、推荐理由、对应技能缺口）
+            - 分阶段学习路径（阶段目标、课程顺序、建议周期）
+            - 效果衡量（参与率、通过率、能力提升分，并说明数据缺失）
+            - 数据限制与下一步建议
+
+            输出结构（岗位或组织问题）：
+            - 岗位/范围与数据口径
+            - 岗位必备课程或高效果课程摘要
+            - 培训优先级与分阶段路径
+            - 数据缺失、口径限制和下一步建议
+        - id: training-analyst-user
+          role: user
+          text: |
+            用户问题：{{#training_start.query#}}
+
+            培训推荐上下文：
+            {{#training_start.training_context#}}
+        selected: false
+        title: 智能培训推荐分析
+        type: llm
+        variables:
+        - value_selector:
+          - training_start
+          - query
+          variable: query
+        - value_selector:
+          - training_start
+          - training_context
+          variable: training_context
+        vision:
+          enabled: false
+      height: 98
+      id: training_analyst
+      position:
+        x: 350
+        y: 240
+      positionAbsolute:
+        x: 350
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#training_analyst.text#}}'
+        desc: ''
+        selected: false
+        title: 培训推荐结论
+        type: answer
+        variables: []
+      height: 103
+      id: training_answer
+      position:
+        x: 670
+        y: 240
+      positionAbsolute:
+        x: 670
+        y: 240
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244

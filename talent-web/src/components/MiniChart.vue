@@ -15,7 +15,7 @@ const props = withDefaults(
     height?: number
     color?: string
   }>(),
-  { type: 'bar', height: 190, color: '#409eff' },
+  { type: 'bar', height: 190, color: '#2563eb' },
 )
 
 const CHART_WIDTH = 640
@@ -76,7 +76,7 @@ const labelStep = computed(() => Math.ceil(props.labels.length / 12) || 1)
         :x2="CHART_WIDTH - PAD"
         :y1="tick.y"
         :y2="tick.y"
-        stroke="#ebeef5"
+        stroke="#e6e6e6"
         stroke-width="1"
       />
       <text
@@ -86,7 +86,7 @@ const labelStep = computed(() => Math.ceil(props.labels.length / 12) || 1)
         :y="tick.y + 4"
         text-anchor="end"
         font-size="11"
-        fill="#909399"
+        fill="#777777"
       >
         {{ tick.label }}
       </text>
@@ -123,7 +123,7 @@ const labelStep = computed(() => Math.ceil(props.labels.length / 12) || 1)
           :y="height - 2"
           text-anchor="middle"
           font-size="10"
-          fill="#909399"
+          fill="#777777"
         >
           {{ label }}
         </text>

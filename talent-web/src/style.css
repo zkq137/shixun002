@@ -3,23 +3,23 @@
    颜色、圆角、阴影统一在这里定义，页面只写业务布局
    ============================================================ */
 :root {
-  --app-bg: #f4f6fb;
+  --app-bg: #f3f3f2;
   --app-surface: #ffffff;
-  --app-ink: #1b2540;
-  --app-ink-2: #475569;
-  --app-muted: #8590a3;
-  --app-line: #edf1f7;
-  --app-primary: #3b6ef6;
+  --app-ink: #111111;
+  --app-ink-2: #454545;
+  --app-muted: #777777;
+  --app-line: #e5e5e5;
+  --app-primary: #111111;
   --app-radius: 14px;
   --app-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px rgba(16, 24, 40, 0.05);
 
   /* 覆盖 Element Plus 的默认观感 */
-  --el-color-primary: #3b6ef6;
+  --el-color-primary: #111111;
   --el-border-radius-base: 8px;
   --el-border-radius-small: 6px;
-  --el-text-color-primary: #1b2540;
-  --el-text-color-regular: #475569;
-  --el-border-color-light: #edf1f7;
+  --el-text-color-primary: #111111;
+  --el-text-color-regular: #454545;
+  --el-border-color-light: #e5e5e5;
 }
 
 * {
@@ -302,4 +302,205 @@ body {
   .page-title {
     font-size: 20px;
   }
+}
+
+/* ============================================================
+   黑白基底 + 语义色：页面保持黑白灰结构，文字用颜色表达状态
+   ============================================================ */
+:root {
+  --app-bg: #f3f3f2;
+  --app-surface: #ffffff;
+  --app-ink: #111111;
+  --app-ink-2: #454545;
+  --app-muted: #777777;
+  --app-line: #e5e5e5;
+  --app-primary: #111111;
+  --app-info: #2563eb;
+  --app-success: #15803d;
+  --app-warning: #b45309;
+  --app-danger: #c2410c;
+  --app-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.05);
+
+  --el-color-primary: #111111;
+  --el-color-primary-light-3: #454545;
+  --el-color-primary-light-5: #777777;
+  --el-color-primary-light-7: #ababab;
+  --el-color-primary-light-8: #c8c8c8;
+  --el-color-primary-light-9: #f2f2f2;
+  --el-color-primary-dark-2: #000000;
+
+  --el-color-success: #15803d;
+  --el-color-success-light-3: #4ade80;
+  --el-color-success-light-5: #86efac;
+  --el-color-success-light-7: #bbf7d0;
+  --el-color-success-light-8: #dcfce7;
+  --el-color-success-light-9: #f0fdf4;
+  --el-color-success-dark-2: #15803d;
+
+  --el-color-warning: #b45309;
+  --el-color-warning-light-3: #d97706;
+  --el-color-warning-light-5: #fbbf24;
+  --el-color-warning-light-7: #fde68a;
+  --el-color-warning-light-8: #fef3c7;
+  --el-color-warning-light-9: #fffbeb;
+  --el-color-warning-dark-2: #92400e;
+
+  --el-color-danger: #dc2626;
+  --el-color-danger-light-3: #f87171;
+  --el-color-danger-light-5: #fca5a5;
+  --el-color-danger-light-7: #fecaca;
+  --el-color-danger-light-8: #fee2e2;
+  --el-color-danger-light-9: #fef2f2;
+  --el-color-danger-dark-2: #b91c1c;
+
+  --el-color-info: #2563eb;
+  --el-color-info-light-3: #60a5fa;
+  --el-color-info-light-5: #93c5fd;
+  --el-color-info-light-7: #bfdbfe;
+  --el-color-info-light-8: #dbeafe;
+  --el-color-info-light-9: #eff6ff;
+  --el-color-info-dark-2: #1d4ed8;
+
+  --el-text-color-primary: #111111;
+  --el-text-color-regular: #454545;
+  --el-text-color-secondary: #777777;
+  --el-text-color-placeholder: #9a9a9a;
+  --el-border-color: #dedede;
+  --el-border-color-light: #e7e7e7;
+  --el-border-color-lighter: #efefef;
+  --el-fill-color-light: #f5f5f5;
+  --el-fill-color-lighter: #f8f8f8;
+  --el-bg-color-page: #f3f3f2;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-ink);
+}
+
+.page-title,
+.section-title,
+.stat-value,
+.el-card__header {
+  color: #111111;
+}
+
+.page-title {
+  color: #1e3a8a;
+}
+
+.section-title {
+  color: #1f2937;
+}
+
+.el-card {
+  border-color: var(--app-line);
+  box-shadow: var(--app-shadow);
+}
+
+.el-table {
+  --el-table-header-bg-color: #f7f7f7;
+  --el-table-row-hover-bg-color: #f3f3f3;
+  color: #333333;
+}
+
+.el-table th.el-table__cell {
+  background: #f7f7f7 !important;
+  color: #475569;
+}
+
+.el-table td.el-table__cell,
+.el-table th.el-table__cell {
+  border-bottom-color: #eeeeee !important;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px #dedede inset;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--app-info) inset;
+}
+
+.el-button.is-link:not(.el-button--danger):not(.is-danger):not(.is-disabled) {
+  color: var(--app-info);
+}
+
+.el-tabs__item {
+  color: #64748b;
+}
+
+.el-tabs__item.is-active {
+  color: #1d4ed8;
+}
+
+.el-tabs__active-bar {
+  background-color: var(--app-info);
+}
+
+.el-pagination {
+  --el-pagination-hover-color: var(--app-info);
+}
+
+.el-progress-bar__outer {
+  background-color: #ededed;
+}
+
+.el-progress-bar__inner {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.el-empty__description p {
+  color: #777777;
+}
+
+.el-alert--info {
+  --el-alert-bg-color: #eff6ff;
+  --el-alert-text-color: #1e40af;
+}
+
+.el-alert--success {
+  --el-alert-bg-color: #f0fdf4;
+  --el-alert-text-color: #166534;
+}
+
+.el-alert--warning {
+  --el-alert-bg-color: #fffbeb;
+  --el-alert-text-color: #92400e;
+}
+
+.el-alert--error {
+  --el-alert-bg-color: #fef2f2;
+  --el-alert-text-color: #991b1b;
+}
+
+.selection-bar {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.text-info { color: var(--app-info) !important; }
+.text-success { color: var(--app-success) !important; }
+.text-warning { color: var(--app-warning) !important; }
+.text-danger { color: var(--app-danger) !important; }
+
+.value-positive { color: var(--app-success) !important; }
+.value-negative { color: var(--app-danger) !important; }
+.value-warning { color: var(--app-warning) !important; }
+
+.number-emphasis {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-tabs .el-tabs__header {
+  margin-bottom: 18px;
+}
+
+.module-tabs .el-tabs__content {
+  overflow: visible;
 }

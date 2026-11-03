@@ -93,6 +93,12 @@ if (-not $env:PROMOTION_DIFY_BASE_URL) {
 if (-not $env:PROMOTION_DIFY_API_KEY) {
     $env:PROMOTION_DIFY_API_KEY = [Environment]::GetEnvironmentVariable('PROMOTION_DIFY_API_KEY', 'User')
 }
+if (-not $env:TRAINING_DIFY_BASE_URL) {
+    $env:TRAINING_DIFY_BASE_URL = [Environment]::GetEnvironmentVariable('TRAINING_DIFY_BASE_URL', 'User')
+}
+if (-not $env:TRAINING_DIFY_API_KEY) {
+    $env:TRAINING_DIFY_API_KEY = [Environment]::GetEnvironmentVariable('TRAINING_DIFY_API_KEY', 'User')
+}
 if ($env:DIFY_BASE_URL -and $env:DIFY_API_KEY) {
     Write-Host "  Dify = $env:DIFY_BASE_URL"
 } else {
@@ -107,6 +113,11 @@ if ($env:PROMOTION_DIFY_BASE_URL -and $env:PROMOTION_DIFY_API_KEY) {
     Write-Host "  Promotion Agent = $env:PROMOTION_DIFY_BASE_URL"
 } else {
     Write-Host '  [警告] 晋升决策智能体环境变量未配置' -ForegroundColor Yellow
+}
+if ($env:TRAINING_DIFY_BASE_URL -and $env:TRAINING_DIFY_API_KEY) {
+    Write-Host "  Training Agent = $env:TRAINING_DIFY_BASE_URL"
+} else {
+    Write-Host '  [警告] 智能培训推荐智能体环境变量未配置' -ForegroundColor Yellow
 }
 
 if (Test-Port 3306) { Write-Host '  MySQL 3306 正常' }

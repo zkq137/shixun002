@@ -26,10 +26,10 @@ function percent(value: number, items?: NameValue[]) {
 /** 健康度颜色 */
 const healthColor = computed(() => {
   const score = data.value?.healthScore ?? 0
-  if (score >= 85) return '#67c23a'
-  if (score >= 70) return '#409eff'
-  if (score >= 60) return '#e6a23c'
-  return '#f56c6c'
+  if (score >= 85) return '#16a34a'
+  if (score >= 70) return '#2563eb'
+  if (score >= 60) return '#d97706'
+  return '#dc2626'
 })
 
 /**
@@ -58,29 +58,29 @@ const nineCells = computed(() => {
     <el-row :gutter="16">
       <el-col :span="6">
         <el-card shadow="hover">
-          <el-icon color="#409eff" :size="20"><User /></el-icon>
+          <el-icon color="#2563eb" :size="20"><User /></el-icon>
           <div class="stat-value">{{ data?.totalEmployees ?? '-' }}</div>
           <div class="stat-label">在职员工</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
-          <el-icon color="#f56c6c" :size="20"><Star /></el-icon>
-          <div class="stat-value">{{ data?.coreTalentCount ?? '-' }}</div>
+          <el-icon color="#16a34a" :size="20"><Star /></el-icon>
+          <div class="stat-value text-success">{{ data?.coreTalentCount ?? '-' }}</div>
           <div class="stat-label">核心骨干（储备人才 {{ data?.reserveTalentCount ?? 0 }}）</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
-          <el-icon color="#67c23a" :size="20"><TrendCharts /></el-icon>
-          <div class="stat-value">{{ data?.highPotentialCount ?? '-' }}</div>
+          <el-icon color="#2563eb" :size="20"><TrendCharts /></el-icon>
+          <div class="stat-value text-info">{{ data?.highPotentialCount ?? '-' }}</div>
           <div class="stat-label">高潜人才（S/A 级）</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover">
-          <el-icon color="#e6a23c" :size="20"><Warning /></el-icon>
-          <div class="stat-value">{{ data?.highRiskCount ?? '-' }}</div>
+          <el-icon color="#dc2626" :size="20"><Warning /></el-icon>
+          <div class="stat-value text-danger">{{ data?.highRiskCount ?? '-' }}</div>
           <div class="stat-label">
             高风险（中风险 {{ data?.middleRiskCount ?? 0 }}，占比 {{ data?.highRiskRate ?? 0 }}%）
           </div>
@@ -140,6 +140,7 @@ const nineCells = computed(() => {
             <el-progress
               :percentage="percent(item.value, data?.levelTierDistribution)"
               :stroke-width="14"
+              color="#2563eb"
               style="flex: 1"
             />
             <span class="dist-count">{{ item.value }} 人</span>
@@ -154,7 +155,7 @@ const nineCells = computed(() => {
             <el-progress
               :percentage="percent(item.value, data?.positionTypeDistribution)"
               :stroke-width="14"
-              color="#67c23a"
+              color="#16a34a"
               style="flex: 1"
             />
             <span class="dist-count">{{ item.value }} 人</span>
@@ -169,7 +170,7 @@ const nineCells = computed(() => {
             <el-progress
               :percentage="percent(item.value, data?.ageRangeDistribution)"
               :stroke-width="14"
-              color="#e6a23c"
+              color="#d97706"
               style="flex: 1"
             />
             <span class="dist-count">{{ item.value }} 人</span>
@@ -181,7 +182,7 @@ const nineCells = computed(() => {
             <el-progress
               :percentage="percent(item.value, data?.tenureRangeDistribution)"
               :stroke-width="14"
-              color="#909399"
+              color="#2563eb"
               style="flex: 1"
             />
             <span class="dist-count">{{ item.value }} 人</span>
@@ -197,8 +198,12 @@ const nineCells = computed(() => {
   margin: 0;
   padding-left: 18px;
   font-size: 13px;
-  color: #606266;
+  color: #475569;
   line-height: 1.9;
+}
+
+.suggestion-list li::marker {
+  color: #2563eb;
 }
 
 .nine-box {
@@ -215,29 +220,33 @@ const nineCells = computed(() => {
 }
 
 .nine-cell.good {
-  background: #f0f9eb;
-  border-color: #e1f3d8;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 
 .nine-cell.ok {
-  background: #fdf6ec;
-  border-color: #faecd8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .nine-cell.warn {
-  background: #fef0f0;
-  border-color: #fde2e2;
+  background: #fffbeb;
+  border-color: #fde68a;
 }
 
 .nine-count {
   font-size: 22px;
   font-weight: 600;
-  color: #303133;
+  color: #111111;
 }
+
+.nine-cell.good .nine-count { color: #15803d; }
+.nine-cell.ok .nine-count { color: #1d4ed8; }
+.nine-cell.warn .nine-count { color: #b45309; }
 
 .nine-title {
   margin-top: 4px;
   font-size: 12px;
-  color: #909399;
+  color: #64748b;
 }
 </style>

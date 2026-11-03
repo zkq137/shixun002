@@ -7,8 +7,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
   history: createWebHistory(),
   scrollBehavior(to) {
-    if (to.hash) return { el: to.hash, behavior: 'smooth', top: 16 }
-    return { top: 0 }
+    if (to.hash) {
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLElement>(to.hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+      return false
+    }
+    document.querySelector<HTMLElement>('.main')?.scrollTo({ top: 0, behavior: 'smooth' })
+    return false
   },
   routes: [
     { path: '/', redirect: '/dashboard' },
@@ -50,7 +56,7 @@ const router = createRouter({
     },
     {
       path: '/assistant',
-      redirect: { path: '/employee', hash: '#assistant-employee' },
+      redirect: { path: '/employee', query: { tab: 'assistant' } },
     },
   ],
 })
