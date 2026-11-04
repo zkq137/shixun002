@@ -76,6 +76,7 @@ public interface TrainingQueryMapper {
     List<String> skillGaps(@Param("employeeId") Long employeeId);
 
     @Select("SELECT c.id AS course_id, c.course_name, COUNT(r.id) AS participant_count, "
+            + "COUNT(r.attend_rate) AS attend_sample_count, COUNT(r.pass_rate) AS pass_sample_count, COUNT(r.improve_score) AS improve_sample_count, "
             + "ROUND(AVG(r.attend_rate), 2) AS average_attend_rate, "
             + "ROUND(AVG(r.pass_rate), 2) AS average_pass_rate, "
             + "ROUND(AVG(r.improve_score), 2) AS average_improve_score "

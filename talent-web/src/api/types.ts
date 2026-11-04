@@ -229,9 +229,13 @@ export interface TalentPool {
 
 /** 课程条目 */
 export interface CourseItem {
+  matchScore?: number
+  matchReason?: string
   id: number
   courseName: string
   courseType?: string | null
+  categoryId?: number | null
+  categoryName?: string | null
   forPosition?: string | null
   difficulty?: string | null
   duration?: number | null
@@ -244,14 +248,19 @@ export interface CourseItem {
 
 /** 学习计划 */
 export interface TrainingPlan {
+  algorithmName?: string
+  matchThreshold?: number
+  developmentGoal?: string | null
   employeeId: number
   employeeName: string
   positionName: string
   completedCourses: CourseItem[]
   recommendedCourses: CourseItem[]
+  recommendedPaths?: LearningPathTemplate[]
   /** 岗位要求但员工还没掌握的技能 */
   skillGaps: string[]
   recommendationReason?: string | null
+  generatedAt?: string | null
 }
 
 /** 晋升候选人 */
@@ -338,7 +347,7 @@ export interface PotentialRecord {
 
 /** 学习路径阶段任务 */
 export interface LearningPathTask {
-  id: number
+  id?: number
   taskName: string
   stage: number
   courseId?: number | null
@@ -356,6 +365,9 @@ export interface LearningPath {
 
 /** 课程培训效果汇总 */
 export interface TrainingEffect {
+  attendSampleCount?: number
+  passSampleCount?: number
+  improveSampleCount?: number
   courseId: number
   courseName: string
   participantCount: number
@@ -692,4 +704,54 @@ export interface SavedReport {
   generatedBy?: string | null
   createdAt?: string | null
   content?: string | null
+}
+
+export interface CourseCategory {
+  id: number
+  categoryName: string
+  description?: string | null
+  courseCount: number
+  createdAt?: string | null
+}
+
+export interface CourseForm {
+  courseName: string
+  courseType?: string
+  categoryId?: number | null
+  forPosition?: string
+  difficulty?: string
+  duration?: number
+}
+
+export interface LearningPathTemplate {
+  forPosition?: string | null
+  developmentGoal?: string | null
+  matchReason?: string | null
+  id: number
+  pathName: string
+  targetSkill?: string | null
+  createdAt?: string | null
+  tasks: LearningPathTask[]
+  matchScore?: number | null
+}
+
+export interface LearningPathForm {
+  forPosition?: string | null
+  developmentGoal?: string | null
+  matchReason?: string | null
+  pathName: string
+  targetSkill?: string
+  tasks: LearningPathTask[]
+}
+
+export interface TrainingRecordForm {
+  employeeId: number
+  courseId: number
+  attendRate?: number | null
+  passRate?: number | null
+  improveScore?: number | null
+}
+
+export interface CourseImportResult {
+  imported: number
 }

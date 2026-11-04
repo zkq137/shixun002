@@ -8,6 +8,8 @@ import java.util.List;
 public class LearningPathSaveDTO {
     private String pathName;
     private String targetSkill;
+    private String forPosition;
+    private String developmentGoal;
     private List<PathTaskDTO> tasks;
 
     @Data

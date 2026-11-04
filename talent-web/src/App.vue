@@ -80,6 +80,7 @@ const NAV_MODULES: NavModule[] = [
       { key: 'training:courses', label: '课程库', to: '/training?tab=courses', tab: 'courses' },
       { key: 'training:paths', label: '学习路径', to: '/training?tab=paths', tab: 'paths' },
       { key: 'training:effects', label: '培训效果', to: '/training?tab=effects', tab: 'effects' },
+      { key: 'training:algorithm', label: '匹配算法', to: '/training?tab=algorithm', tab: 'algorithm' },
       { key: 'training:assistant', label: '推荐助手', to: '/training?tab=assistant', tab: 'assistant' },
     ],
   },
