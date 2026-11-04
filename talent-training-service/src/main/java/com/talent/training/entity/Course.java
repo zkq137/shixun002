@@ -14,6 +14,8 @@ public class Course {
     private Long id;
     private String courseName;
     private String courseType;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private Long categoryId;
     private String forPosition;
     private String difficulty;
     private Integer duration;

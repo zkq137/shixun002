@@ -6,6 +6,7 @@ import lombok.Data;
 public class CourseSaveDTO {
     private String courseName;
     private String courseType;
+    private Long categoryId;
     private String forPosition;
     private String difficulty;
     private Integer duration;
