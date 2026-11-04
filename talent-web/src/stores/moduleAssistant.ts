@@ -119,6 +119,7 @@ async function send(
   moduleKey: string,
   state: AssistantChatState,
   endpoints: AssistantEndpoints,
+  context?: string,
 ): Promise<'sent' | 'busy' | 'empty' | 'unconfigured'> {
   const text = state.input.trim()
   if (!text) return 'empty'
@@ -130,9 +131,10 @@ async function send(
   state.sending = true
 
   try {
+    const query = context ? `${context}\n\n${text}` : text
     const reply = await sendAssistantMessage(
       {
-        query: text,
+        query,
         conversationId: state.conversationId || undefined,
         user: `web-${moduleKey}`,
       },
@@ -168,7 +170,7 @@ export function useModuleAssistant(
   return {
     state,
     loadStatus: (force = false) => loadStatus(moduleKey, state, endpoints, force),
-    send: () => send(moduleKey, state, endpoints),
+    send: (context?: string) => send(moduleKey, state, endpoints, context),
     newChat: () => newChat(state),
   }
 }

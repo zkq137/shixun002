@@ -20,10 +20,7 @@ import java.util.List;
 @Mapper
 public interface PromotionMapper {
 
-    @Select("select count(*) from position where id = #{id}")
-    int countPosition(@Param("id") Long id);
-
-    @Select("""
+    String CANDIDATE_SELECT = """
             select e.id as employee_id, e.emp_no, e.name, e.department,
                    e.level_tier, e.job_rank, e.tenure_years,
                    f.score as perf_score,
@@ -39,10 +36,18 @@ public interface PromotionMapper {
               and field(target.level_tier, '员工层', '主管层', '经理层', '总监层', '高管层', '决策层')
                   > field(e.level_tier, '员工层', '主管层', '经理层', '总监层', '高管层', '决策层')
               and ifnull(f.score, 0) >= 4
-            order by total_score desc, po.total_score desc
-            limit #{limit}
-            """)
+            """;
+
+    @Select("select count(*) from position where id = #{id}")
+    int countPosition(@Param("id") Long id);
+
+    @Select(CANDIDATE_SELECT + " order by total_score desc, po.total_score desc limit #{limit}")
     List<PromotionCandidateVO> selectCandidates(@Param("positionId") Long positionId,
                                                 @Param("perfYear") int perfYear,
                                                 @Param("limit") int limit);
+
+    /** 绩效潜力矩阵使用完整候选池，不按排行上限截断。 */
+    @Select(CANDIDATE_SELECT + " order by total_score desc, po.total_score desc")
+    List<PromotionCandidateVO> selectMatrixCandidates(@Param("positionId") Long positionId,
+                                                      @Param("perfYear") int perfYear);
 }

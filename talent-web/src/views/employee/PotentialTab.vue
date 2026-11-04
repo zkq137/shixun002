@@ -4,6 +4,7 @@ import { fetchEmployeePage, fetchPotential, fetchPotentialModel } from '@/api/em
 import type { EmployeeRow, PotentialModel, PotentialRecord } from '@/api/types'
 
 const loading = ref(false)
+const searching = ref(false)
 const options = ref<EmployeeRow[]>([])
 const employeeId = ref<number | null>(null)
 const model = ref<PotentialModel | null>(null)
@@ -22,8 +23,34 @@ function scoreTone(score?: number | null) {
   return 'value-negative'
 }
 
+async function searchEmployees(keyword: string) {
+  const text = keyword.trim()
+  if (!text) {
+    options.value = []
+    return
+  }
+  searching.value = true
+  try {
+    const page = await fetchEmployeePage({ pageNum: 1, pageSize: 30, keyword: text })
+    options.value = page.records
+  } catch {
+    options.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
+function handleEmployeeChange(id: number | null | undefined) {
+  if (id === null || id === undefined) {
+    employeeId.value = null
+    record.value = null
+    return
+  }
+  loadData()
+}
+
 async function loadData() {
-  if (employeeId.value === null) return
+  if (employeeId.value === null || employeeId.value === undefined) return
   loading.value = true
   try {
     record.value = await fetchPotential(employeeId.value)
@@ -35,16 +62,10 @@ async function loadData() {
 }
 
 onMounted(async () => {
-  const [page, modelData] = await Promise.all([
-    fetchEmployeePage({ pageNum: 1, pageSize: 300 }),
-    fetchPotentialModel(),
-  ])
-  options.value = page.records
-  model.value = modelData
-  const first = options.value[0]
-  if (first) {
-    employeeId.value = first.id
-    await loadData()
+  try {
+    model.value = await fetchPotentialModel()
+  } catch {
+    model.value = null
   }
 })
 </script>
@@ -53,7 +74,18 @@ onMounted(async () => {
   <div>
     <el-card shadow="never">
       <div class="search-bar">
-        <el-select v-model="employeeId" filterable placeholder="选择员工查看潜力评估" style="width: 340px" @change="loadData">
+        <el-select
+          v-model="employeeId"
+          filterable
+          remote
+          reserve-keyword
+          clearable
+          :remote-method="searchEmployees"
+          :loading="searching"
+          placeholder="输入员工姓名搜索"
+          style="width: 340px"
+          @change="handleEmployeeChange"
+        >
           <el-option v-for="item in options" :key="item.id" :label="`${item.name}（${item.empNo}）- ${item.department}`" :value="item.id" />
         </el-select>
         <el-button type="primary" :disabled="employeeId === null" :loading="loading" @click="loadData">加载评估</el-button>

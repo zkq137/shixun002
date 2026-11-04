@@ -29,4 +29,10 @@ public class PromotionController {
                                                          @RequestParam(value = "limit", defaultValue = "10") int limit) {
         return Result.success(promotionService.candidates(positionId, limit));
     }
+
+    /** 绩效潜力矩阵使用完整候选人池，不受排行上限影响。 */
+    @GetMapping("/candidates/matrix")
+    public Result<List<PromotionCandidateVO>> matrixCandidates(@RequestParam("positionId") Long positionId) {
+        return Result.success(promotionService.matrixCandidates(positionId));
+    }
 }

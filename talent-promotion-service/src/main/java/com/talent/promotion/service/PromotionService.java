@@ -10,4 +10,6 @@ import java.util.List;
 public interface PromotionService {
 
     List<PromotionCandidateVO> candidates(Long positionId, int limit);
+
+    List<PromotionCandidateVO> matrixCandidates(Long positionId);
 }

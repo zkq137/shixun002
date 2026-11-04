@@ -24,8 +24,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.util.List;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -50,6 +51,8 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
     private static final Pattern NUMERIC_ID_PATTERN = Pattern.compile(
             "(?:员工\\s*ID|ID|编号|员工)\\s*[:：]?\\s*(\\d+)",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern ONLINE_INFERENCE_NAME_PATTERN = Pattern.compile(
+            "(?:对|给|为|员工|姓名\\s*[:：]?)\\s*([\\u4e00-\\u9fa5]{2,4})\\s*(?:进行|做)?\\s*在线推理");
 
     @Value("${talent.dify.base-url:}")
     private String baseUrl;
@@ -72,11 +75,6 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
 
     @Override
     public AnalysisAssistantReplyVO chat(AnalysisAssistantChatDTO dto) {
-        if (!isConfigured()) {
-            throw new BusinessException(ResultCode.FAIL.getCode(),
-                    "数据分析智能体尚未配置 ANALYSIS_DIFY_BASE_URL 和 ANALYSIS_DIFY_API_KEY");
-        }
-
         String directAction = executeDirectAction(dto.getQuery());
         if (directAction != null) {
             AnalysisAssistantReplyVO vo = new AnalysisAssistantReplyVO();
@@ -84,6 +82,11 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
             vo.setMessageId(UUID.randomUUID().toString());
             vo.setCreatedAt(System.currentTimeMillis());
             return vo;
+        }
+
+        if (!isConfigured()) {
+            throw new BusinessException(ResultCode.FAIL.getCode(),
+                    "数据分析智能体尚未配置 ANALYSIS_DIFY_BASE_URL 和 ANALYSIS_DIFY_API_KEY");
         }
 
         String context = evidenceService.buildContext(dto.getQuery());
@@ -268,6 +271,9 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
         }
 
         Long employeeId = resolveEmployeeReference(query);
+        if (employeeId == null && isEmployeeSpecificQuery(query)) {
+            return employeeNotFoundReply(query);
+        }
         if (employeeId != null && query.contains("在线推理")) {
             String identifier = String.valueOf(employeeId);
             return formatPrediction(talentModelService.predictAttrition(identifier))
@@ -291,6 +297,107 @@ public class AnalysisAssistantServiceImpl implements AnalysisAssistantService {
                     String.valueOf(employeeId)));
         }
         return null;
+    }
+
+    private boolean isEmployeeSpecificQuery(String query) {
+        if (query.contains("在线推理")) {
+            return true;
+        }
+        boolean employeeIntent = query.contains("员工") || query.contains("姓名");
+        boolean predictionIntent = query.contains("预测")
+                || query.contains("推理")
+                || query.contains("识别")
+                || query.contains("推荐")
+                || query.contains("匹配");
+        boolean employeeTopic = query.contains("流失")
+                || query.contains("离职")
+                || query.contains("高潜")
+                || query.contains("潜力")
+                || query.contains("岗位");
+        return employeeIntent && predictionIntent && employeeTopic;
+    }
+
+    private String employeeNotFoundReply(String query) {
+        List<EmployeeCandidate> employees = jdbcTemplate.query("""
+                select id, emp_no, name, department
+                from emp_employee
+                where status = '在职'
+                """, (rs, rowNum) -> new EmployeeCandidate(
+                rs.getLong("id"),
+                rs.getString("emp_no"),
+                rs.getString("name"),
+                rs.getString("department"),
+                0));
+
+        StringBuilder text = new StringBuilder();
+        String employeeName = onlineInferenceEmployeeName(query);
+        text.append(StringUtils.hasText(employeeName)
+                        ? "未找到员工“" + employeeName + "”，无法执行在线推理。\n"
+                        : "未找到与本次请求匹配的在职员工，无法执行在线推理。\n")
+                .append("当前在职员工 ").append(employees.size())
+                .append(" 人，可能是姓名有误或该员工已离职。\n");
+
+        if (!query.contains("在线推理")) {
+            text.append("\n请提供员工的数字 ID、完整工号或完整姓名后重试。");
+            return text.toString().trim();
+        }
+
+        List<EmployeeCandidate> candidates = employees.stream()
+                .map(employee -> new EmployeeCandidate(
+                        employee.id(),
+                        employee.empNo(),
+                        employee.name(),
+                        employee.department(),
+                        longestCommonSubstring(query, employee.name())))
+                .filter(employee -> employee.similarity() >= 2)
+                .sorted(Comparator.comparingInt(EmployeeCandidate::similarity).reversed()
+                        .thenComparingLong(EmployeeCandidate::id))
+                .limit(3)
+                .toList();
+        if (candidates.isEmpty()) {
+            text.append("\n请确认员工姓名，或改用员工数字 ID / 工号发送在线推理请求。");
+            return text.toString().trim();
+        }
+
+        text.append("\n最相近的员工：\n");
+        for (EmployeeCandidate employee : candidates) {
+            text.append("• ").append(employee.name())
+                    .append("（ID ").append(employee.id())
+                    .append("，工号 ").append(employee.empNo())
+                    .append("，").append(employee.department()).append("）\n");
+        }
+        EmployeeCandidate first = candidates.get(0);
+        text.append("\n如为姓名笔误，请确认后发送：对")
+                .append(first.name()).append("进行在线推理。");
+        return text.toString().trim();
+    }
+
+    private String onlineInferenceEmployeeName(String query) {
+        Matcher matcher = ONLINE_INFERENCE_NAME_PATTERN.matcher(query);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private int longestCommonSubstring(String left, String right) {
+        if (!StringUtils.hasText(left) || !StringUtils.hasText(right)) {
+            return 0;
+        }
+        int[] previous = new int[right.length() + 1];
+        int longest = 0;
+        for (int i = 1; i <= left.length(); i++) {
+            int[] current = new int[right.length() + 1];
+            for (int j = 1; j <= right.length(); j++) {
+                if (left.charAt(i - 1) == right.charAt(j - 1)) {
+                    current[j] = previous[j - 1] + 1;
+                    longest = Math.max(longest, current[j]);
+                }
+            }
+            previous = current;
+        }
+        return longest;
+    }
+
+    private record EmployeeCandidate(
+            long id, String empNo, String name, String department, int similarity) {
     }
 
     private boolean isFlowForecastQuery(String query) {

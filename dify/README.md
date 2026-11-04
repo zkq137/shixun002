@@ -296,6 +296,7 @@ Dify Cloud。Dify 不再访问本地接口，因此不需要开放入站端口�
 |---|---|
 | `GET /api/planning/positions` | 岗位列表与岗位匹配 |
 | `GET /api/promotion/candidates` | 跨层级且 2026 绩效≥4 的晋升候选池 |
+| `GET /api/promotion/candidates/matrix` | 绩效潜力矩阵使用的完整晋升候选池（不受排行上限截断） |
 | `GET /api/planning/succession` | 岗位继任匹配度、准备度与技能缺口 |
 | `GET /api/planning/skill-coverage` | 岗位技能要求及全组织覆盖情况 |
 | `GET /api/employee/referenced` | 从自然语言问题中解析员工姓名或工号，得到稳定员工 ID |

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { EditPen, Refresh, Search, View } from '@element-plus/icons-vue'
 import { evaluatePositionRisks, fetchPlanningDashboard, fetchPositionDetail, fetchPositionRisks, fetchPositions, fetchRiskEmployee, fetchRiskEmployees, fetchSkillCoverage, fetchSuccession, fetchTalentPools, handleRiskEmployee, refreshSuccession, refreshTalentPools, updateKeyPosition } from '@/api/planning'
@@ -33,6 +33,9 @@ const successionPositionId = ref<number | null>(null)
 const successionLoading = ref(false)
 const successionCandidates = ref<SuccessionCandidate[]>([])
 const talentPools = ref<TalentPool[]>([])
+const poolPositions = ref<PlanningPosition[]>([])
+const poolKeyword = ref('')
+const poolKeyFilter = ref<PositionKeyFilter>('all')
 const riskList = ref<RiskEmployee[]>([])
 const riskTotal = ref(0)
 const riskPageNum = ref(1)
@@ -52,16 +55,55 @@ const planningAssistantPrompts = [
   '给出梯队建设优先行动建议',
 ]
 
+const filteredPoolPositions = computed(() => {
+  const keyword = poolKeyword.value.trim().toLowerCase()
+  return poolPositions.value.filter((position) => {
+    const matchesKeyword = !keyword
+      || position.positionName.toLowerCase().includes(keyword)
+      || (position.positionLevel ?? '').toLowerCase().includes(keyword)
+    const matchesKey = poolKeyFilter.value === 'all'
+      || (poolKeyFilter.value === 'key' ? Boolean(position.key) : !position.key)
+    return matchesKeyword && matchesKey
+  })
+})
+
+const poolSummary = computed(() => {
+  const all = poolPositions.value.length
+  const key = poolPositions.value.filter((position) => position.key).length
+  const reserved = poolPositions.value.filter((position) => valueOf(position.successorCount) > 0).length
+  const uncovered = poolPositions.value.filter((position) => valueOf(position.readyNowCount) === 0).length
+  return { all, key, reserved, uncovered }
+})
+
 function valueOf(value?: number | null) { return value ?? 0 }
 function riskTag(level?: string | null): 'success' | 'warning' | 'danger' | 'info' { if (level === '高' || level === '高风险') return 'danger'; if (level === '中' || level === '中风险') return 'warning'; return 'success' }
 function readinessTag(value?: string | null): 'success' | 'warning' | 'danger' | 'info' { if (value === 'READY_NOW') return 'success'; if (value === 'READY_1_YEAR') return 'warning'; if (value === 'READY_2_YEARS') return 'info'; return 'danger' }
 function readinessColor(value: string) { if (value === 'READY_NOW') return '#16a34a'; if (value === 'READY_1_YEAR') return '#2563eb'; if (value === 'READY_2_YEARS') return '#d97706'; return '#dc2626' }
 function readinessLabel(value?: string | null) { return value ? readinessLabels[value] ?? value : '-' }
 function formatDate(value?: string | null) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
+function poolStatusTag(position: PlanningPosition): 'success' | 'warning' | 'danger' {
+  if (valueOf(position.readyNowCount) > 0) return 'success'
+  if (valueOf(position.successorCount) > 0) return 'warning'
+  return 'danger'
+}
+function poolStatusLabel(position: PlanningPosition) {
+  if (valueOf(position.readyNowCount) > 0) return '可立即继任'
+  if (valueOf(position.successorCount) > 0) return '储备中'
+  return '待补充'
+}
 
 async function loadDashboard() { dashboardLoading.value = true; try { dashboard.value = await fetchPlanningDashboard() } finally { dashboardLoading.value = false } }
 async function loadPositions() { positionLoading.value = true; try { positions.value = await fetchPositions({ keyword: positionKeyword.value || undefined, key: positionKeyFilter.value === 'all' ? null : positionKeyFilter.value === 'key' }) } finally { positionLoading.value = false } }
-async function loadPools() { poolLoading.value = true; try { talentPools.value = await fetchTalentPools() } finally { poolLoading.value = false } }
+async function loadPools() {
+  poolLoading.value = true
+  try {
+    const [poolRows, positionRows] = await Promise.all([fetchTalentPools(), fetchPositions()])
+    talentPools.value = poolRows
+    poolPositions.value = positionRows
+  } finally {
+    poolLoading.value = false
+  }
+}
 async function loadPositionRisks() { positionRiskLoading.value = true; try { positionRisks.value = await fetchPositionRisks() } finally { positionRiskLoading.value = false } }
 async function loadRisks() { riskLoading.value = true; try { const page = await fetchRiskEmployees({ pageNum: riskPageNum.value, pageSize: riskPageSize.value, warningLevel: riskQuery.warningLevel || undefined, handleStatus: riskQuery.handleStatus || undefined, department: riskQuery.department || undefined, keyword: riskQuery.keyword || undefined }); riskList.value = page.records; riskTotal.value = page.total } finally { riskLoading.value = false } }
 async function loadSuccessionCandidates() {
@@ -78,9 +120,10 @@ async function openPosition(position: PlanningPosition) {
   selectedPosition.value = position; positionDialogVisible.value = true; positionDetailLoading.value = true
   try { const [detail, candidates, coverage] = await Promise.all([fetchPositionDetail(position.id), fetchSuccession(position.id, 50), fetchSkillCoverage(position.id)]); selectedPosition.value = detail; positionCandidates.value = candidates; positionCoverage.value = coverage } finally { positionDetailLoading.value = false }
 }
-async function toggleKey(position: PlanningPosition) { await updateKeyPosition(position.id, !position.key); ElMessage.success(position.key ? '已取消关键岗位标记' : '已标记为关键岗位'); await Promise.all([loadPositions(), loadDashboard()]) }
-async function refreshPosition(position: PlanningPosition) { positionRefreshLoading.value = position.id; try { const candidates = await refreshSuccession(position.id); ElMessage.success('继任候选快照已刷新'); if (selectedPosition.value?.id === position.id) positionCandidates.value = candidates; await loadDashboard() } finally { positionRefreshLoading.value = null } }
-async function refreshPools() { poolLoading.value = true; try { talentPools.value = await refreshTalentPools(); await loadDashboard(); ElMessage.success('人才池统计已刷新') } finally { poolLoading.value = false } }
+async function toggleKey(position: PlanningPosition) { await updateKeyPosition(position.id, !position.key); ElMessage.success(position.key ? '已取消关键岗位标记' : '已标记为关键岗位'); await Promise.all([loadPositions(), loadPools(), loadDashboard()]) }
+async function refreshPosition(position: PlanningPosition) { positionRefreshLoading.value = position.id; try { const candidates = await refreshSuccession(position.id); ElMessage.success('继任候选快照已刷新'); if (selectedPosition.value?.id === position.id) positionCandidates.value = candidates; await Promise.all([loadPositions(), loadPools(), loadDashboard()]) } finally { positionRefreshLoading.value = null } }
+async function refreshPools() { poolLoading.value = true; try { const [, positionRows] = await Promise.all([refreshTalentPools(), fetchPositions()]); poolPositions.value = positionRows; await loadDashboard(); ElMessage.success('人才池统计已刷新') } finally { poolLoading.value = false } }
+async function openPoolSuccession(position: PlanningPosition) { successionPositionId.value = position.id; activeTab.value = 'succession'; await loadSuccessionCandidates() }
 async function evaluateRisks() { positionRiskLoading.value = true; try { positionRisks.value = await evaluatePositionRisks(); await Promise.all([loadDashboard(), loadPositions()]); ElMessage.success('岗位风险已重新评估') } finally { positionRiskLoading.value = false } }
 async function showRiskDetail(row: RiskEmployee) { if (!row.id) return; riskDetailVisible.value = true; riskDetailLoading.value = true; try { selectedRisk.value = await fetchRiskEmployee(row.id) } finally { riskDetailLoading.value = false } }
 function openRiskHandle(row: RiskEmployee) { selectedRisk.value = row; riskForm.handleStatus = row.handleStatus ?? '处理中'; riskForm.handler = row.handler ?? ''; riskForm.remark = row.handleRemark ?? ''; riskHandleVisible.value = true }
@@ -152,8 +195,63 @@ onMounted(loadAll)
       </el-tab-pane>
 
       <el-tab-pane label="人才池" name="pools">
-        <el-card shadow="never"><div class="search-bar"><el-button type="primary" :icon="Refresh" :loading="poolLoading" @click="refreshPools">刷新人才池</el-button><span class="page-tip" style="margin: 0">统计基于最新继任候选快照</span></div></el-card>
-        <el-card shadow="never" style="margin-top: 16px"><el-table v-loading="poolLoading" :data="talentPools" stripe border><el-table-column prop="level" label="岗位层级" min-width="130" /><el-table-column prop="totalCapacity" label="目标容量" /><el-table-column prop="currentCount" label="当前合格候选" /><el-table-column prop="gapCount" label="人才缺口" /><el-table-column label="覆盖率"><template #default="{ row }">{{ valueOf(row.coverageRate) }}%</template></el-table-column><el-table-column prop="readyNowCount" label="立即可继任" /><el-table-column prop="readyOneYearCount" label="一年内可继任" /><el-table-column label="更新时间" min-width="150"><template #default="{ row }">{{ formatDate(row.updatedAt) }}</template></el-table-column><template #empty><el-empty description="暂无人才池数据，请先刷新" /></template></el-table></el-card>
+        <el-row :gutter="12" class="pool-stats">
+          <el-col :span="6"><el-card shadow="never"><div class="stat-label">岗位总数</div><div class="stat-value">{{ poolSummary.all }}</div></el-card></el-col>
+          <el-col :span="6"><el-card shadow="never"><div class="stat-label">关键岗位</div><div class="stat-value">{{ poolSummary.key }}</div></el-card></el-col>
+          <el-col :span="6"><el-card shadow="never"><div class="stat-label">已储备继任</div><div class="stat-value">{{ poolSummary.reserved }}</div></el-card></el-col>
+          <el-col :span="6"><el-card shadow="never"><div class="stat-label">缺乏立即继任</div><div class="stat-value">{{ poolSummary.uncovered }}</div></el-card></el-col>
+        </el-row>
+        <el-card shadow="never">
+          <div class="search-bar">
+            <el-input v-model="poolKeyword" clearable placeholder="搜索岗位名称或层级" style="width: 240px" />
+            <el-select v-model="poolKeyFilter" style="width: 150px">
+              <el-option label="全部岗位" value="all" />
+              <el-option label="关键岗位" value="key" />
+              <el-option label="普通岗位" value="normal" />
+            </el-select>
+            <el-button type="primary" :icon="Refresh" :loading="poolLoading" @click="refreshPools">刷新人才池</el-button>
+            <span class="page-tip" style="margin: 0">全部岗位均显示，关键岗位单独标记</span>
+          </div>
+        </el-card>
+        <el-card shadow="never" style="margin-top: 16px">
+          <template #header>岗位人才储备（{{ filteredPoolPositions.length }} 个岗位）</template>
+          <el-table v-loading="poolLoading" :data="filteredPoolPositions" stripe border>
+            <el-table-column prop="positionName" label="岗位名称" min-width="180" />
+            <el-table-column prop="positionLevel" label="岗位层级" width="120" />
+            <el-table-column label="岗位属性" width="110">
+              <template #default="{ row }">
+                <el-tag :type="row.key ? 'danger' : 'info'" :effect="row.key ? 'dark' : 'plain'">{{ row.key ? '关键岗位' : '普通岗位' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="incumbentCount" label="在岗人数" width="95" />
+            <el-table-column prop="successorCount" label="合格继任" width="95" />
+            <el-table-column prop="readyNowCount" label="立即可继任" width="110" />
+            <el-table-column label="人才池状态" width="120">
+              <template #default="{ row }"><el-tag :type="poolStatusTag(row)">{{ poolStatusLabel(row) }}</el-tag></template>
+            </el-table-column>
+            <el-table-column label="风险" width="85">
+              <template #default="{ row }"><el-tag v-if="row.riskLevel" :type="riskTag(row.riskLevel)">{{ row.riskLevel }}</el-tag><span v-else>-</span></template>
+            </el-table-column>
+            <el-table-column label="操作" width="110" fixed="right">
+              <template #default="{ row }"><el-button link type="primary" :icon="View" @click="openPoolSuccession(row)">继任</el-button></template>
+            </el-table-column>
+            <template #empty><el-empty description="暂无匹配岗位" /></template>
+          </el-table>
+        </el-card>
+        <el-card shadow="never" style="margin-top: 16px">
+          <template #header>关键岗位池层级汇总</template>
+          <el-table v-loading="poolLoading" :data="talentPools" stripe border>
+            <el-table-column prop="level" label="岗位层级" min-width="130" />
+            <el-table-column prop="totalCapacity" label="目标容量" />
+            <el-table-column prop="currentCount" label="当前合格候选" />
+            <el-table-column prop="gapCount" label="人才缺口" />
+            <el-table-column label="覆盖率"><template #default="{ row }">{{ valueOf(row.coverageRate) }}%</template></el-table-column>
+            <el-table-column prop="readyNowCount" label="立即可继任" />
+            <el-table-column prop="readyOneYearCount" label="一年内可继任" />
+            <el-table-column label="更新时间" min-width="150"><template #default="{ row }">{{ formatDate(row.updatedAt) }}</template></el-table-column>
+            <template #empty><el-empty description="暂无关键岗位池汇总，请先标记关键岗位并刷新" /></template>
+          </el-table>
+        </el-card>
       </el-tab-pane>
 
       <el-tab-pane label="风险预警" name="risks">
@@ -182,6 +280,26 @@ onMounted(loadAll)
 <style scoped>
 :deep(.el-dialog) {
   max-width: 94vw;
+}
+
+.pool-stats {
+  margin-bottom: 16px;
+}
+
+.pool-stats :deep(.el-col:nth-child(1) .stat-value) {
+  color: #1d4ed8;
+}
+
+.pool-stats :deep(.el-col:nth-child(2) .stat-value) {
+  color: #b91c1c;
+}
+
+.pool-stats :deep(.el-col:nth-child(3) .stat-value) {
+  color: #15803d;
+}
+
+.pool-stats :deep(.el-col:nth-child(4) .stat-value) {
+  color: #b45309;
 }
 
 .dashboard-stats :deep(.el-col:nth-child(1) .stat-value),

@@ -30,4 +30,12 @@ public class PromotionServiceImpl implements PromotionService {
         }
         return promotionMapper.selectCandidates(positionId, perfYear, limit < 1 ? 10 : Math.min(limit, 100));
     }
+
+    @Override
+    public List<PromotionCandidateVO> matrixCandidates(Long positionId) {
+        if (positionId == null || promotionMapper.countPosition(positionId) == 0) {
+            throw new BusinessException(ResultCode.NOT_FOUND.getCode(), "岗位不存在：" + positionId);
+        }
+        return promotionMapper.selectMatrixCandidates(positionId, perfYear);
+    }
 }

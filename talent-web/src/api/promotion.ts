@@ -5,3 +5,8 @@ import type { PromotionCandidate } from './types'
 export function fetchPromotionCandidates(positionId: number, limit = 10) {
   return get<PromotionCandidate[]>('/promotion/candidates', { positionId, limit })
 }
+
+/** 绩效潜力矩阵使用完整候选池，不受排行上限影响 */
+export function fetchPromotionMatrixCandidates(positionId: number) {
+  return get<PromotionCandidate[]>('/promotion/candidates/matrix', { positionId })
+}

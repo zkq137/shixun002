@@ -5,7 +5,7 @@ import MiniChart from '@/components/MiniChart.vue'
 import ModuleAssistant from '@/components/ModuleAssistant.vue'
 import { useUrlTab } from '@/composables/useUrlTab'
 import { fetchPositionOptions } from '@/api/employee'
-import { fetchPromotionCandidates } from '@/api/promotion'
+import { fetchPromotionCandidates, fetchPromotionMatrixCandidates } from '@/api/promotion'
 import type { PositionOption, PromotionCandidate } from '@/api/types'
 
 const activeTab = useUrlTab(
@@ -17,6 +17,12 @@ const positionId = ref<number | null>(null)
 const limit = ref(20)
 const loading = ref(false)
 const candidates = ref<PromotionCandidate[]>([])
+const matrixCandidates = ref<PromotionCandidate[]>([])
+const matrixDisplayLimit = 10
+const assistantPositionContext = computed(() => {
+  const current = positions.value.find((item) => item.id === positionId.value)
+  return current ? `${current.department} / ${current.positionName}（岗位ID：${current.id}）` : ''
+})
 const promotionAssistantPrompts = [
   '评估当前岗位的晋升候选人',
   '比较前 5 名候选人的晋升准备度',
@@ -64,12 +70,12 @@ const matrixGroups = computed(() => {
     { title: '持续培养', description: '保持跟踪，补齐绩效或潜力短板', items: [] as PromotionCandidate[] },
   ]
   const byTitle = new Map(groups.map((group) => [group.title, group]))
-  candidates.value.forEach((item) => byTitle.get(matrixGroup(item))?.items.push(item))
+  matrixCandidates.value.forEach((item) => byTitle.get(matrixGroup(item))?.items.push(item))
   return groups
 })
 
 const riskCandidates = computed(() =>
-  candidates.value.filter((item) => item.warningLevel === '高风险' || item.warningLevel === '中风险'),
+  matrixCandidates.value.filter((item) => item.warningLevel === '高风险' || item.warningLevel === '中风险'),
 )
 
 const suggestions = computed(() =>
@@ -91,7 +97,12 @@ async function load() {
   if (positionId.value === null) return
   loading.value = true
   try {
-    candidates.value = await fetchPromotionCandidates(positionId.value, limit.value)
+    const [ranking, matrix] = await Promise.all([
+      fetchPromotionCandidates(positionId.value, limit.value),
+      fetchPromotionMatrixCandidates(positionId.value),
+    ])
+    candidates.value = ranking
+    matrixCandidates.value = matrix
   } finally {
     loading.value = false
   }
@@ -156,7 +167,7 @@ onMounted(async () => {
         <el-button type="primary" :icon="Search" :disabled="positionId === null" @click="load">
           查询候选人
         </el-button>
-        <span class="page-tip" style="margin: 0">候选人上限</span>
+        <span class="page-tip" style="margin: 0">排行显示上限（矩阵使用完整候选池）</span>
       </div>
     </el-card>
 
@@ -185,12 +196,13 @@ onMounted(async () => {
         <el-row :gutter="16" class="matrix-grid">
           <el-col v-for="group in matrixGroups" :key="group.title" :span="12" style="margin-bottom: 16px">
             <el-card shadow="never">
-              <template #header><div><strong>{{ group.title }}</strong><span class="page-tip" style="margin: 4px 0 0">{{ group.description }}</span></div></template>
+              <template #header><div><strong>{{ group.title }}（{{ group.items.length }} 人）</strong><span class="page-tip" style="margin: 4px 0 0">{{ group.description }}</span></div></template>
               <div v-if="group.items.length" class="candidate-list">
-                <div v-for="item in group.items" :key="item.employeeId" class="candidate-item">
+                <div v-for="item in group.items.slice(0, matrixDisplayLimit)" :key="item.employeeId" class="candidate-item">
                   <div><strong>{{ item.name }}</strong><span class="muted">{{ item.department }} · {{ item.levelTier }}</span></div>
                   <div class="candidate-score">绩效 {{ item.perfScore ?? '-' }} / 潜力 {{ item.potentialScore ?? '-' }} / 综合 {{ item.totalScore ?? '-' }}</div>
                 </div>
+                <div v-if="group.items.length > matrixDisplayLimit" class="page-tip" style="margin: 0">仅展示前 {{ matrixDisplayLimit }} 人，共 {{ group.items.length }} 人</div>
               </div>
               <el-empty v-else description="暂无候选人" :image-size="54" />
             </el-card>
@@ -264,6 +276,7 @@ onMounted(async () => {
           module-key="promotion"
           title="晋升决策智能体"
           :quick-prompts="promotionAssistantPrompts"
+          :context-label="assistantPositionContext"
           status-endpoint="/promotion/ai/status"
           chat-endpoint="/promotion/ai/chat"
           service-name="晋升服务"

@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import MiniChart from '@/components/MiniChart.vue'
 import { fetchEmployeePage, fetchPerformanceHistory, fetchPerformanceTrend } from '@/api/employee'
 import type { EmployeeRow, PerformanceRecord, PerformanceTrend } from '@/api/types'
 
 const loading = ref(false)
+const searching = ref(false)
 const options = ref<EmployeeRow[]>([])
+const selectedEmployee = ref<EmployeeRow | null>(null)
 const employeeId = ref<number | null>(null)
 const history = ref<PerformanceRecord[]>([])
 const trend = ref<PerformanceTrend | null>(null)
 
-const selectedEmployee = computed(() => options.value.find((item) => item.id === employeeId.value) ?? null)
 const chartLabels = computed(() => (trend.value?.years ?? []).map(String))
 const chartValues = computed(() => trend.value?.scores ?? [])
 const latestRecord = computed(() => history.value[history.value.length - 1] ?? null)
@@ -36,13 +37,37 @@ function gradeType(grade?: string | null): 'success' | 'warning' | 'danger' | 'i
   return 'info'
 }
 
-async function loadOptions() {
-  const page = await fetchEmployeePage({ pageNum: 1, pageSize: 300 })
-  options.value = page.records
+async function searchEmployees(keyword: string) {
+  const text = keyword.trim()
+  if (!text) {
+    options.value = []
+    return
+  }
+  searching.value = true
+  try {
+    const page = await fetchEmployeePage({ pageNum: 1, pageSize: 30, keyword: text })
+    options.value = page.records
+  } catch {
+    options.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
+function handleEmployeeChange(id: number | null | undefined) {
+  if (id === null || id === undefined) {
+    employeeId.value = null
+    selectedEmployee.value = null
+    history.value = []
+    trend.value = null
+    return
+  }
+  selectedEmployee.value = options.value.find((item) => item.id === id) ?? null
+  loadData()
 }
 
 async function loadData() {
-  if (employeeId.value === null) return
+  if (employeeId.value === null || employeeId.value === undefined) return
   loading.value = true
   try {
     const [records, trendData] = await Promise.all([
@@ -59,21 +84,24 @@ async function loadData() {
   }
 }
 
-onMounted(async () => {
-  await loadOptions()
-  const first = options.value[0]
-  if (first) {
-    employeeId.value = first.id
-    await loadData()
-  }
-})
 </script>
 
 <template>
   <div>
     <el-card shadow="never">
       <div class="search-bar">
-        <el-select v-model="employeeId" filterable placeholder="选择员工查看绩效档案" style="width: 340px" @change="loadData">
+        <el-select
+          v-model="employeeId"
+          filterable
+          remote
+          reserve-keyword
+          clearable
+          :remote-method="searchEmployees"
+          :loading="searching"
+          placeholder="输入员工姓名搜索"
+          style="width: 340px"
+          @change="handleEmployeeChange"
+        >
           <el-option v-for="item in options" :key="item.id" :label="`${item.name}（${item.empNo}）- ${item.department}`" :value="item.id" />
         </el-select>
         <el-button type="primary" :disabled="employeeId === null" :loading="loading" @click="loadData">加载档案</el-button>

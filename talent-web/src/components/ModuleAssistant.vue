@@ -68,6 +68,7 @@ const props = withDefaults(
     moduleKey: string
     title?: string
     quickPrompts?: string[]
+    contextLabel?: string
     statusEndpoint?: string
     chatEndpoint?: string
     serviceName?: string
@@ -76,6 +77,7 @@ const props = withDefaults(
   {
     title: '模块智能助手',
     quickPrompts: () => [],
+    contextLabel: '',
     statusEndpoint: '/ai/status',
     chatEndpoint: '/ai/chat',
     serviceName: '员工服务',
@@ -375,7 +377,8 @@ async function scrollToBottom() {
 }
 
 async function send() {
-  const result = await chat.send()
+  const context = props.contextLabel.trim() ? `当前岗位：${props.contextLabel.trim()}` : undefined
+  const result = await chat.send(context)
   if (result === 'unconfigured') {
     ElMessage.warning('AI 助手还没配置 Dify，请先设置 DIFY_BASE_URL 和 DIFY_API_KEY')
   }
