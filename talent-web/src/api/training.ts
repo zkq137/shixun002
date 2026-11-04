@@ -1,5 +1,12 @@
-import { get } from './request'
-import type { CourseItem, LearningPath, PageResult, TrainingEffect, TrainingPlan } from './types'
+import { del, get, post, put } from './request'
+import type {
+  CourseItem,
+  LearningPath,
+  LearningPathForm,
+  PageResult,
+  TrainingEffect,
+  TrainingPlan,
+} from './types'
 
 /** 学习计划：岗位必修 - 已完成 */
 export function fetchTrainingPlan(employeeId: number) {
@@ -29,6 +36,21 @@ export function fetchLearningPaths() {
 /** 学习路径详情 */
 export function fetchLearningPathDetail(id: number) {
   return get<LearningPath>(`/training/path-templates/${id}`)
+}
+
+/** 新增学习路径模板 */
+export function createLearningPath(data: LearningPathForm) {
+  return post<number>('/training/path-templates', data)
+}
+
+/** 修改学习路径模板 */
+export function updateLearningPath(id: number, data: LearningPathForm) {
+  return put<void>(`/training/path-templates/${id}`, data)
+}
+
+/** 删除学习路径模板 */
+export function deleteLearningPath(id: number) {
+  return del<void>(`/training/path-templates/${id}`)
 }
 
 /** 课程培训效果汇总 */

@@ -143,8 +143,9 @@ onMounted(async () => {
   <div>
     <h2 id="promotion-candidates" class="page-title">晋升决策支持</h2>
     <p class="page-tip">
-      筛选规则：职级层级要低于目标岗位（员工层 &lt; 主管层 &lt; 经理层 &lt; 总监层 &lt; 高管层 &lt; 决策层）、
-      绩效 4 分以上；综合分 = 绩效×15 + 潜力评分×0.5 + 司龄×2。以下分析均基于当前岗位候选人实时计算。
+      筛选规则：职级层级要低于目标岗位（员工层 &lt; 主管层 &lt; 经理层 &lt; 总监层 &lt; 高管层 &lt; 决策层）、绩效 4 分以上。
+      人才基础分 =（绩效×15 + 潜力评分×0.5 + 司龄×2）/145×100；岗位匹配 = 核心技能×80% + 加分技能×20%；
+      综合分 = 人才基础分×60% + 岗位匹配×40%。以下分析均基于目标岗位技能要求实时计算。
     </p>
 
     <el-card shadow="never">
@@ -185,6 +186,14 @@ onMounted(async () => {
             <el-table-column prop="perfScore" label="绩效" width="75" />
             <el-table-column prop="potentialLevel" label="潜力" width="125" />
             <el-table-column prop="potentialScore" label="潜力分" width="85" />
+            <el-table-column label="岗位匹配" width="145">
+              <template #default="{ row }">
+                <div class="match-cell">
+                  <el-tag :type="scoreTag(row.skillMatchScore)" effect="plain">{{ row.skillMatchScore ?? 0 }}%</el-tag>
+                  <span class="page-tip">核心 {{ row.matchedCoreSkillCount ?? 0 }}/{{ row.requiredCoreSkillCount ?? 0 }}</span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column label="综合分" width="110"><template #default="{ row }"><el-tag :type="scoreTag(row.totalScore)" effect="plain">{{ row.totalScore }}</el-tag></template></el-table-column>
             <el-table-column label="流失风险" width="100"><template #default="{ row }"><el-tag :type="warningType(row.warningLevel)" effect="plain">{{ row.warningLevel ?? '-' }}</el-tag></template></el-table-column>
             <template #empty><el-empty description="当前岗位暂无晋升候选人" /></template>
@@ -200,7 +209,7 @@ onMounted(async () => {
               <div v-if="group.items.length" class="candidate-list">
                 <div v-for="item in group.items.slice(0, matrixDisplayLimit)" :key="item.employeeId" class="candidate-item">
                   <div><strong>{{ item.name }}</strong><span class="muted">{{ item.department }} · {{ item.levelTier }}</span></div>
-                  <div class="candidate-score">绩效 {{ item.perfScore ?? '-' }} / 潜力 {{ item.potentialScore ?? '-' }} / 综合 {{ item.totalScore ?? '-' }}</div>
+                  <div class="candidate-score">绩效 {{ item.perfScore ?? '-' }} / 潜力 {{ item.potentialScore ?? '-' }} / 匹配 {{ item.skillMatchScore ?? 0 }}% / 综合 {{ item.totalScore ?? '-' }}</div>
                 </div>
                 <div v-if="group.items.length > matrixDisplayLimit" class="page-tip" style="margin: 0">仅展示前 {{ matrixDisplayLimit }} 人，共 {{ group.items.length }} 人</div>
               </div>
@@ -262,6 +271,7 @@ onMounted(async () => {
             <el-table-column prop="rank" label="序号" width="70" />
             <el-table-column prop="name" label="姓名" width="100" />
             <el-table-column prop="department" label="部门" width="120" />
+            <el-table-column label="岗位匹配" width="100"><template #default="{ row }">{{ row.skillMatchScore ?? 0 }}%</template></el-table-column>
             <el-table-column prop="totalScore" label="综合分" width="100" />
             <el-table-column label="决策标签" width="120"><template #default="{ row }"><el-tag :type="readinessType(row.readiness)" effect="plain">{{ row.readiness }}</el-tag></template></el-table-column>
             <el-table-column prop="action" label="建议行动" min-width="300" />
@@ -312,4 +322,16 @@ onMounted(async () => {
 .matrix-grid > .el-col:nth-child(2) :deep(.el-card__header strong) { color: #1d4ed8; }
 .matrix-grid > .el-col:nth-child(3) :deep(.el-card__header strong) { color: #b45309; }
 .matrix-grid > .el-col:nth-child(4) :deep(.el-card__header strong) { color: #b91c1c; }
+
+.match-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.match-cell .page-tip {
+  margin: 0;
+  white-space: nowrap;
+}
 </style>

@@ -312,7 +312,7 @@ decisionScore = 0.40 × 晋升分 + 0.35 × 继任匹配度
               + 0.15 × 准备度 + 0.10 × 风险分
 ```
 
-- 晋升分按 `totalScore / 150 × 100` 归一化，并限制在 0–100。
+- `totalScore` 已按“人才基础分 × 60% + 目标岗位技能匹配 × 40%”归一化到 0–100，晋升分直接取该值。
 - `READY_NOW/READY_1_YEAR/READY_2_YEARS/NOT_READY` 分别折算为 100/85/55/20。
 - 低/中/高风险分别折算为 100/60/30。
 - 排序先按 `evidenceCoverage` 分组（`full` 优先），同组再按 readiness

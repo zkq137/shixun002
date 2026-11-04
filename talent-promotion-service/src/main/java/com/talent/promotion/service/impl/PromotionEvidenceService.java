@@ -188,9 +188,13 @@ public class PromotionEvidenceService {
             candidate.put("potentialLevel", text(promotion.get("potentialLevel")));
             candidate.put("potentialScore", number(promotion.get("potentialScore"), 0));
             candidate.put("warningLevel", text(promotion.get("warningLevel")));
+            candidate.put("talentScore", number(promotion.get("talentScore"), 0));
+            candidate.put("skillMatchScore", number(promotion.get("skillMatchScore"), 0));
+            candidate.put("matchedCoreSkillCount", number(promotion.get("matchedCoreSkillCount"), 0));
+            candidate.put("requiredCoreSkillCount", number(promotion.get("requiredCoreSkillCount"), 0));
             candidate.put("totalScore", number(promotion.get("totalScore"), 0));
 
-            double promotionScore = clamp(number(promotion.get("totalScore"), 0) / 150 * 100);
+            double promotionScore = clamp(number(promotion.get("totalScore"), 0));
             double riskScore = riskScore(text(promotion.get("warningLevel")));
             candidate.put("promotionScore", round(promotionScore));
             candidate.put("riskScore", round(riskScore));
@@ -497,7 +501,7 @@ public class PromotionEvidenceService {
 
     private Map<String, Object> ruleDefinition() {
         Map<String, Object> rules = new LinkedHashMap<>();
-        rules.put("promotionScore", "clamp(totalScore / 150 * 100, 0, 100)");
+        rules.put("promotionScore", "clamp(totalScore, 0, 100)");
         rules.put("fullEvidenceDecisionScore",
                 "0.40 * promotionScore + 0.35 * successionMatchScore + 0.15 * readinessScore + 0.10 * riskScore");
         rules.put("promotionOnlyDecisionScore", "0.80 * promotionScore + 0.20 * riskScore");

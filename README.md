@@ -107,6 +107,11 @@ spring:
 3. 数据库连接已经在 `application.yml` 里配好，按需改成自己的账号密码。
 4. 在 `com.talent.<module>.mapper` 下添加 MyBatis-Plus Mapper 接口，`entity` 包下加实体。
 
+`talent_dataset.sql` 会自动调用 `sql/talent_training_data_fix.sql`，补齐课程的
+类型、难度、适用岗位、时长，以及学习记录的参与率、通过率和能力提升。已有数据库无需重建，
+直接执行 `sql/talent_training_data_fix.sql` 即可修复智能培训页面的空值数据。
+该脚本还会补齐 6 套可直接复用的分阶段学习路径模板。
+
 ## 八、Sentinel 限流与熔断
 
 已接入 **Sentinel 1.8.8**。版本由父工程里的 spring-cloud-alibaba BOM 统一管理，

@@ -267,6 +267,10 @@ export interface PromotionCandidate {
   potentialLevel?: string | null
   potentialScore?: number | null
   warningLevel?: string | null
+  talentScore?: number | null
+  skillMatchScore?: number | null
+  matchedCoreSkillCount?: number | null
+  requiredCoreSkillCount?: number | null
   totalScore?: number | null
 }
 
@@ -352,6 +356,20 @@ export interface LearningPath {
   targetSkill?: string | null
   createdAt?: string | null
   tasks?: LearningPathTask[]
+}
+
+/** 学习路径编辑任务 */
+export interface LearningPathFormTask {
+  taskName: string
+  stage: number
+  courseId?: number | null
+}
+
+/** 新增或修改学习路径 */
+export interface LearningPathForm {
+  pathName: string
+  targetSkill?: string | null
+  tasks: LearningPathFormTask[]
 }
 
 /** 课程培训效果汇总 */

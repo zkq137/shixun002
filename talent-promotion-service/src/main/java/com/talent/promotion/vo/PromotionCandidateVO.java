@@ -22,6 +22,15 @@ public class PromotionCandidateVO {
     private BigDecimal potentialScore;
     private String warningLevel;
 
-    /** 综合分 = 绩效*15 + 潜力评分*0.5 + 司龄*2 */
+    /** 人才基础分：绩效*15 + 潜力评分*0.5 + 司龄*2，归一化到 100 */
+    private BigDecimal talentScore;
+
+    /** 岗位匹配分：核心技能 80% + 加分技能 20% */
+    private BigDecimal skillMatchScore;
+
+    private Integer matchedCoreSkillCount;
+    private Integer requiredCoreSkillCount;
+
+    /** 综合分 = 人才基础分 * 60% + 岗位匹配分 * 40% */
     private BigDecimal totalScore;
 }

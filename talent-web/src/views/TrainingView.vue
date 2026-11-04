@@ -1,21 +1,26 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import ModuleAssistant from '@/components/ModuleAssistant.vue'
 import { useUrlTab } from '@/composables/useUrlTab'
 import { fetchEmployeePage } from '@/api/employee'
 import {
+  createLearningPath,
+  deleteLearningPath,
   fetchCourses,
   fetchLearningPathDetail,
   fetchLearningPaths,
   fetchTrainingEffects,
   fetchTrainingPlan,
   fetchTrainingRecords,
+  updateLearningPath,
 } from '@/api/training'
 import type {
   CourseItem,
   EmployeeRow,
   LearningPath,
+  LearningPathForm,
   PageResult,
   TrainingEffect,
   TrainingPlan,
@@ -40,6 +45,16 @@ const courseQuery = reactive({ pageNum: 1, pageSize: 10, keyword: '', courseType
 const pathLoading = ref(false)
 const paths = ref<LearningPath[]>([])
 const selectedPath = ref<LearningPath | null>(null)
+const pathCourseOptions = ref<CourseItem[]>([])
+const pathEditorVisible = ref(false)
+const pathEditorLoading = ref(false)
+const pathSaving = ref(false)
+const editingPathId = ref<number | null>(null)
+const pathForm = reactive<LearningPathForm>({
+  pathName: '',
+  targetSkill: '',
+  tasks: [],
+})
 
 const effectLoading = ref(false)
 const effects = ref<TrainingEffect[]>([])
@@ -115,8 +130,129 @@ async function loadPaths() {
   }
 }
 
-async function openPath(row: LearningPath) {
+async function openPath(row: Pick<LearningPath, 'id'>) {
   selectedPath.value = await fetchLearningPathDetail(row.id)
+}
+
+async function loadPathCourseOptions() {
+  const page = await fetchCourses({ pageNum: 1, pageSize: 100 })
+  pathCourseOptions.value = page.records
+}
+
+function newPathTask(stage = 1) {
+  return { taskName: '', stage, courseId: null }
+}
+
+function resetPathForm() {
+  pathForm.pathName = ''
+  pathForm.targetSkill = ''
+  pathForm.tasks = [newPathTask()]
+}
+
+function openCreatePath() {
+  editingPathId.value = null
+  pathEditorLoading.value = false
+  resetPathForm()
+  pathEditorVisible.value = true
+}
+
+async function openEditPath(row: LearningPath) {
+  editingPathId.value = row.id
+  pathEditorVisible.value = true
+  pathEditorLoading.value = true
+  try {
+    const detail = await fetchLearningPathDetail(row.id)
+    pathForm.pathName = detail.pathName
+    pathForm.targetSkill = detail.targetSkill ?? ''
+    pathForm.tasks = (detail.tasks ?? []).map((task) => ({
+      taskName: task.taskName,
+      stage: task.stage,
+      courseId: task.courseId ?? null,
+    }))
+    if (pathForm.tasks.length === 0) pathForm.tasks = [newPathTask()]
+  } catch {
+    pathEditorVisible.value = false
+  } finally {
+    pathEditorLoading.value = false
+  }
+}
+
+function addPathTask() {
+  const lastStage = pathForm.tasks.at(-1)?.stage ?? 1
+  pathForm.tasks.push(newPathTask(lastStage))
+}
+
+function removePathTask(index: number) {
+  pathForm.tasks.splice(index, 1)
+}
+
+async function savePath() {
+  const pathName = pathForm.pathName.trim()
+  if (!pathName) {
+    ElMessage.warning('请填写学习路径名称')
+    return
+  }
+  if (pathForm.tasks.length === 0) {
+    ElMessage.warning('请至少添加一个阶段任务')
+    return
+  }
+  const blankTaskIndex = pathForm.tasks.findIndex((task) => !task.taskName.trim())
+  if (blankTaskIndex >= 0) {
+    ElMessage.warning(`请填写第 ${blankTaskIndex + 1} 个任务的名称`)
+    return
+  }
+  if (pathForm.tasks.some((task) => !Number.isFinite(task.stage) || task.stage < 1)) {
+    ElMessage.warning('阶段必须从 1 开始')
+    return
+  }
+
+  const payload: LearningPathForm = {
+    pathName,
+    targetSkill: pathForm.targetSkill?.trim() || null,
+    tasks: pathForm.tasks
+      .map((task) => ({
+        taskName: task.taskName.trim(),
+        stage: task.stage,
+        courseId: task.courseId ?? null,
+      }))
+      .sort((a, b) => a.stage - b.stage),
+  }
+
+  pathSaving.value = true
+  try {
+    let targetId = editingPathId.value
+    if (targetId) {
+      await updateLearningPath(targetId, payload)
+    } else {
+      targetId = await createLearningPath(payload)
+    }
+    pathEditorVisible.value = false
+    await loadPaths()
+    await openPath({ id: targetId })
+    ElMessage.success(editingPathId.value ? '学习路径已更新' : '学习路径已创建')
+  } finally {
+    pathSaving.value = false
+  }
+}
+
+async function removePath(row: LearningPath) {
+  try {
+    await ElMessageBox.confirm(`确定删除学习路径“${row.pathName}”吗？`, '删除学习路径', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+  try {
+    await deleteLearningPath(row.id)
+  } catch {
+    return
+  }
+  if (selectedPath.value?.id === row.id) selectedPath.value = null
+  await loadPaths()
+  ElMessage.success('学习路径已删除')
 }
 
 async function loadEffects() {
@@ -156,7 +292,7 @@ function improvementTone(value?: number | null) {
 }
 
 onMounted(async () => {
-  await Promise.allSettled([searchEmployees(''), loadCourses(), loadPaths(), loadEffects()])
+  await Promise.allSettled([searchEmployees(''), loadCourses(), loadPaths(), loadEffects(), loadPathCourseOptions()])
   const first = employeeOptions.value[0]
   if (first) {
     employeeId.value = first.id
@@ -234,7 +370,7 @@ onMounted(async () => {
             <el-table-column prop="courseName" label="课程" min-width="220" />
             <el-table-column prop="courseType" label="类型" width="110" />
             <el-table-column prop="difficulty" label="难度" width="90" />
-            <el-table-column prop="duration" label="时长" width="90" />
+            <el-table-column label="时长" width="100"><template #default="{ row }">{{ row.duration ? `${row.duration} 小时` : '-' }}</template></el-table-column>
             <el-table-column label="参与率" width="100"><template #default="{ row }"><span class="number-emphasis" :class="rateTone(row.attendRate)">{{ rate(row.attendRate) }}</span></template></el-table-column>
             <el-table-column label="通过率" width="100"><template #default="{ row }"><span class="number-emphasis" :class="rateTone(row.passRate)">{{ rate(row.passRate) }}</span></template></el-table-column>
             <el-table-column label="能力提升" width="100"><template #default="{ row }"><span class="number-emphasis" :class="improvementTone(row.improveScore)">{{ row.improveScore ?? '-' }}</span></template></el-table-column>
@@ -270,12 +406,17 @@ onMounted(async () => {
 
       <el-tab-pane label="学习路径" name="paths">
         <el-card shadow="never">
-          <template #header>可复用学习路径模板</template>
+          <template #header>
+            <div class="card-header">
+              <span>可复用学习路径模板</span>
+              <el-button type="primary" @click="openCreatePath">新建路径</el-button>
+            </div>
+          </template>
           <el-table v-loading="pathLoading" :data="paths" stripe>
             <el-table-column prop="pathName" label="路径名称" min-width="220" />
             <el-table-column prop="targetSkill" label="目标技能" min-width="180" />
-            <el-table-column label="更新时间" width="170"><template #default="{ row }">{{ row.createdAt?.replace('T', ' ').slice(0, 16) ?? '-' }}</template></el-table-column>
-            <el-table-column label="操作" width="120"><template #default="{ row }"><el-button link type="primary" @click="openPath(row)">查看阶段</el-button></template></el-table-column>
+            <el-table-column label="创建时间" width="170"><template #default="{ row }">{{ row.createdAt?.replace('T', ' ').slice(0, 16) ?? '-' }}</template></el-table-column>
+            <el-table-column label="操作" width="220"><template #default="{ row }"><el-button link type="primary" @click="openPath(row)">查看阶段</el-button><el-button link type="primary" @click="openEditPath(row)">编辑</el-button><el-button link type="danger" @click="removePath(row)">删除</el-button></template></el-table-column>
             <template #empty><el-empty description="暂无学习路径模板" /></template>
           </el-table>
         </el-card>
@@ -288,6 +429,44 @@ onMounted(async () => {
             </el-timeline-item>
           </el-timeline>
         </el-card>
+
+        <el-dialog v-model="pathEditorVisible" :title="editingPathId ? '编辑学习路径' : '新建学习路径'" width="820px">
+          <div v-loading="pathEditorLoading">
+            <el-form label-width="90px">
+              <el-form-item label="路径名称" required>
+                <el-input v-model="pathForm.pathName" maxlength="64" show-word-limit placeholder="例如：数据分析实战路径" />
+              </el-form-item>
+              <el-form-item label="目标技能">
+                <el-input v-model="pathForm.targetSkill" maxlength="64" show-word-limit placeholder="例如：数据分析、BI与数据治理" />
+              </el-form-item>
+              <el-form-item label="阶段任务" required>
+                <div class="path-task-editor">
+                  <div class="path-task-header">
+                    <span>阶段</span><span>任务名称</span><span>关联课程</span><span></span>
+                  </div>
+                  <div v-for="(task, index) in pathForm.tasks" :key="index" class="path-task-row">
+                    <el-input-number v-model="task.stage" :min="1" :max="20" controls-position="right" />
+                    <el-input v-model="task.taskName" maxlength="128" placeholder="例如：完成基础理论学习" />
+                    <el-select v-model="task.courseId" clearable filterable placeholder="关联课程（可选）">
+                      <el-option
+                        v-for="course in pathCourseOptions"
+                        :key="course.id"
+                        :label="course.courseType ? `${course.courseName} · ${course.courseType}` : course.courseName"
+                        :value="course.id"
+                      />
+                    </el-select>
+                    <el-button link type="danger" :disabled="pathForm.tasks.length === 1" @click="removePathTask(index)">删除</el-button>
+                  </div>
+                  <el-button link type="primary" @click="addPathTask">+ 添加阶段任务</el-button>
+                </div>
+              </el-form-item>
+            </el-form>
+          </div>
+          <template #footer>
+            <el-button @click="pathEditorVisible = false">取消</el-button>
+            <el-button type="primary" :loading="pathSaving" @click="savePath">保存</el-button>
+          </template>
+        </el-dialog>
       </el-tab-pane>
 
       <el-tab-pane label="培训效果" name="effects">
@@ -324,5 +503,35 @@ onMounted(async () => {
 .sub-title {
   margin: 0 0 12px;
   font-size: 15px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.path-task-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.path-task-header,
+.path-task-row {
+  display: grid;
+  grid-template-columns: 110px minmax(180px, 1fr) minmax(220px, 1.2fr) 44px;
+  gap: 10px;
+  align-items: center;
+}
+
+.path-task-header {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.path-task-row :deep(.el-input-number) {
+  width: 100%;
 }
 </style>

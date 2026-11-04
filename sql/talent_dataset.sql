@@ -15974,6 +15974,9 @@ INSERT INTO `training_record` (`id`, `employee_id`, `course_id`, `status`) VALUE
 (2527,1000,23,'已完成'),
 (2528,1000,18,'已完成');
 
+-- 14) 回填课程属性与学习效果，保证智能培训页面有完整展示数据
+SOURCE sql/talent_training_data_fix.sql;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
