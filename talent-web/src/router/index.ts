@@ -13,11 +13,22 @@ const router = createRouter({
       })
       return false
     }
-    document.querySelector<HTMLElement>('.main')?.scrollTo({ top: 0, behavior: 'smooth' })
+    requestAnimationFrame(() => {
+      if (to.name === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+      document.querySelector<HTMLElement>('.main')?.scrollTo({ top: 0, behavior: 'smooth' })
+    })
     return false
   },
   routes: [
-    { path: '/', redirect: '/dashboard' },
+    {
+      path: '/',
+      name: 'home',
+      component: () => import('@/views/HomePage.vue'),
+      meta: { title: '人才战略中枢' },
+    },
     {
       path: '/dashboard',
       name: 'dashboard',

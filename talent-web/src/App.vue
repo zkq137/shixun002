@@ -100,6 +100,7 @@ const NAV_MODULES: NavModule[] = [
 
 const route = useRoute()
 const router = useRouter()
+const isHome = computed(() => route.name === 'home')
 
 const activeModule = computed(() => {
   const segment = route.path.split('/').filter(Boolean)[0]
@@ -122,7 +123,9 @@ function handleMenuSelect(index: string) {
 </script>
 
 <template>
-  <el-container class="layout">
+  <router-view v-if="isHome" />
+
+  <el-container v-else class="layout">
     <el-aside width="224px" class="aside">
       <el-menu
         :key="activeModule"
