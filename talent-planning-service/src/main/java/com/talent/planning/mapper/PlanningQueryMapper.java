@@ -58,12 +58,12 @@ public interface PlanningQueryMapper {
     int incumbentCountByPositionName(@Param("positionId") Long positionId);
 
     @Select("SELECT COUNT(DISTINCT e.id) FROM emp_employee e JOIN resign_warning_record r ON r.employee_id = e.id "
-            + "WHERE r.warning_level = '高' AND e.status = '在职' AND e.position_id = #{positionId}")
+            + "WHERE r.warning_level IN ('高', '高风险') AND e.status = '在职' AND e.position_id = #{positionId}")
     int highRiskByPositionId(@Param("positionId") Long positionId);
 
     @Select("SELECT COUNT(DISTINCT e.id) FROM emp_employee e JOIN position p ON p.position_name = e.position "
             + "JOIN resign_warning_record r ON r.employee_id = e.id "
-            + "WHERE r.warning_level = '高' AND e.status = '在职' AND p.id = #{positionId}")
+            + "WHERE r.warning_level IN ('高', '高风险') AND e.status = '在职' AND p.id = #{positionId}")
     int highRiskByPositionName(@Param("positionId") Long positionId);
 
     @Select(RISK_BY_ID + RISK_FILTER + RISK_ORDER)

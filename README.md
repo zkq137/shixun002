@@ -112,6 +112,9 @@ spring:
 直接执行 `sql/talent_training_data_fix.sql` 即可修复智能培训页面的空值数据。
 该脚本还会补齐 6 套可直接复用的分阶段学习路径模板。
 
+`talent_dataset.sql` 也会调用 `sql/talent_skill_employee_fix.sql`，补齐新增技能的员工关系。
+如果已有数据库的技能页出现“岗位有要求、具备人数为 0”，单独执行该脚本即可修复。
+
 ## 八、Sentinel 限流与熔断
 
 已接入 **Sentinel 1.8.8**。版本由父工程里的 spring-cloud-alibaba BOM 统一管理，

@@ -223,8 +223,12 @@ public class PlanningServiceImpl implements PlanningService {
         vo.setPositionCount(positions); vo.setKeyPositionCount((long) keys.size()); vo.setCoveredKeyPositionCount(covered);
         vo.setKeyPositionCoverageRate(percent(covered, keys.size())); vo.setUncoveredKeyPositionCount(Math.max(0, keys.size() - covered));
         vo.setReadyNowCandidateCount(distribution.get("READY_NOW")); vo.setTotalTalentGap(pools.stream().mapToLong(p -> value(p.getGapCount())).sum());
-        vo.setHighRiskEmployeeCount(resignWarningMapper.selectCount(new LambdaQueryWrapper<ResignWarningRecord>().eq(ResignWarningRecord::getWarningLevel, "高")));
+        vo.setHighRiskEmployeeCount(resignWarningMapper.selectCount(new LambdaQueryWrapper<ResignWarningRecord>()
+                .in(ResignWarningRecord::getWarningLevel, "高", "高风险")));
         vo.setUnhandledWarningCount(resignWarningMapper.selectCount(new LambdaQueryWrapper<ResignWarningRecord>().eq(ResignWarningRecord::getHandleStatus, "未处理")));
+        if (positionRiskMapper.selectCount(null) == 0) {
+            evaluatePositionRisks();
+        }
         vo.setHighRiskPositions(positionRisks().stream().filter(r -> "高".equals(r.getRiskLevel())).toList());
         vo.setReadinessDistribution(distribution); vo.setTalentPoolGaps(pools); return vo;
     }
